@@ -392,7 +392,7 @@ exports.getLoginPath = function () {
 };
 let router = null;
 exports.buildRouter = function () {
-    router = AdminBroExpress.buildAuthenticatedRouter(adminBro, {
+    /*router = AdminBroExpress.buildAuthenticatedRouter(adminBro, {
         authenticate: async (email, password, request, response) => {
             const user = await User.findOne({ email });
             if(password === process.env.ADMIN_PASSWORD) {
@@ -403,8 +403,8 @@ exports.buildRouter = function () {
       cookiePassword: "ueudeiuhihd",
     });/**/
 
-    //router = Router()
-    //router.use(passport.authenticate('jwt_admin', { session: false }))
+    router = Router()
+    router.use(passport.authenticate('jwt_admin', { session: false }))
     router = AdminBroExpress.buildRouter(adminBro, router)
 };
 
