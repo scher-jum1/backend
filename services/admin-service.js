@@ -393,8 +393,12 @@ exports.getLoginPath = function () {
 let router = null;
 exports.buildRouter = function () {
     router = AdminBroExpress.buildAuthenticatedRouter(adminBro, {
-        authenticate: async (username, password, request, response) => {
-            return username === process.env.ADMIN_USERNAME && password === process.env.ADMIN_PASSWORD;
+        authenticate: async (email, password, request, response) => {
+            const user = await User.findOne({ email });
+            if(password === process.env.ADMIN_PASSWORD) {
+                return user;
+            }
+            return false;
           },
       cookiePassword: "ueudeiuhihd",
     });/**/
