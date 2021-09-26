@@ -257,12 +257,16 @@ const calculateBuyOutcome = async (req, res, next) => {
     const bigAmount = toCleanBigDecimal(buyAmount);
     buyAmount = BigInt(bigAmount.getValue());
 
+    console.log("buyAmount", buyAmount)
+
     const result = [];
 
     for (const outcome of bet.outcomes) {
       const outcomeSellAmount = await betContract.calcBuy(buyAmount, outcome.index);
       result.push({ index: outcome.index, outcome: toPrettyBigDecimal(outcomeSellAmount) });
     }
+
+    console.log("result", result)
 
     res.status(200).json(result);
   } catch (err) {
