@@ -7,6 +7,7 @@ const userService = require('../services/user-service');
 const { generate } = require('../helper');
 const bcrypt = require('bcryptjs');
 const { publishEvent, notificationEvents } = require('../services/notification-service');
+const {checkDirectEvents} = require("../controllers/reward-system");
 
 
 module.exports = {
@@ -70,11 +71,22 @@ module.exports = {
         return next(new ErrorHandler(401, 'Invalid login'));
       }
 
-      publishEvent(notificationEvents.EVENT_USER_SIGNED_IN, {
-        producer: 'user',
-        producerId: user._id,
-        data: { userIdentifier },
-      });
+      const prepareEventMsg = {
+        event: notificationEvents.EVENT_USER_SIGNED_IN,
+        data: {
+          producer: 'user',
+          producerId: user._id,
+          data: { userIdentifier },
+        },
+      }
+
+      publishEvent(prepareEventMsg.event, prepareEventMsg.data);
+
+      if(process.env.ENABLE_REWARD_SYSTEM) {
+        checkDirectEvents(prepareEventMsg).catch((err)=> {
+          console.error('[Reward system err]', err);
+        })
+      }
 
       res.status(200).json({
         userId: user.id,

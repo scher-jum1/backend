@@ -10,34 +10,7 @@ const init = (pub) => {
   pubClient = pub.duplicate();
 };
 
-const publishEvent = (event, data) => {
-  if (universalEventTypes.includes(event)) {
-    save(event, data);
-  }
-
-  pubClient.publish(
-    DEFAULT_CHANNEL,
-    JSON.stringify({
-      event: event,
-      ...data,
-    })
-  );
-  console.log('[NOTIFICATION-SERVICE] Published:', event);
-
-  if (data.broadcast) {
-    pubClient.publish(
-      'message',
-      JSON.stringify({
-        to: '*',
-        event,
-        date: new Date(),
-        ...data,
-      })
-    );
-  }
-};
-
-const save = (event, message) => {
+const saveEvent = (event, message) => {
   let uniEvent = new UniversalEvent({
     type: event,
     performedBy: message.producer,
@@ -49,8 +22,46 @@ const save = (event, message) => {
   uniEvent.save();
 };
 
+const publishOnDefaultChannel = ({event, data})=> {
+  console.log('[NOTIFICATION-SERVICE] Published:', event);
+  pubClient.publish(
+    DEFAULT_CHANNEL,
+    JSON.stringify({
+      event: event,
+      ...data
+    })
+  );
+};
+
+const publishToBroadcast = ({event, data})=> {
+  pubClient.publish(
+    'message',
+    JSON.stringify({
+      to: '*',
+      event,
+      date: new Date(),
+      ...data,
+    })
+  );
+};
+
+const publishEvent = (event, data) => {
+  if (universalEventTypes.includes(event)) {
+    saveEvent(event, data);
+  }
+
+  publishOnDefaultChannel({event, data});
+
+  if (data.broadcast) {
+    publishToBroadcast({event, data});
+  }
+};
+
 module.exports = {
   init,
   publishEvent,
   notificationEvents,
+  publishOnDefaultChannel,
+  publishToBroadcast,
+  saveEvent
 };
