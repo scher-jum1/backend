@@ -1,10 +1,8 @@
 const _ = require('lodash');
 const rewardTypes = require('../constans').rewardTypes;
 const {prepareTimeRange} = require('../helpers')
-const {getUserRewards, getUserData, createReward, updateUserTrackers} = require('../../../services/reward-system-service')
-const mongoose = require("mongoose");
-const {saveEvent, publishOnDefaultChannel, notificationEvents, publishToBroadcast} = require('../../../services/notification-service');
-const {emitToAllByUserId} = require('../../../services/websocket-service');
+const {getUserRewards, createReward, updateUserTrackers} = require('../../../services/reward-system-service')
+const {saveEvent, notificationEvents, publishToBroadcast} = require('../../../services/notification-service');
 
 const rewardRecord = {
   userId: null,
@@ -56,7 +54,6 @@ const handle = async (params) => {
     };
 
     saveEvent(eventStructure.event, eventStructure.data);
-    // emitToAllByUserId(rewardRecord.userId, eventStructure.event, eventStructure.data);
     publishToBroadcast(eventStructure);
   }
 }

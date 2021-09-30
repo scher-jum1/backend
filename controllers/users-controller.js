@@ -11,6 +11,8 @@ const { toPrettyBigDecimal, toCleanBigDecimal } = require('../util/number-helper
 const { WFAIR_REWARDS } = require('../util/constants');
 const { BetContract } = require('@wallfair.io/smart_contract_mock');
 const _ = require('lodash');
+const {checkDirectEvents} = require("../controllers/reward-system");
+const {notificationEvents, publishEvent} = require("../services/notification-service");
 
 const WFAIR = new Erc20('WFAIR');
 
@@ -129,6 +131,27 @@ const saveAcceptConditions = async (req, res, next) => {
 const rewardRefUserIfNotConfirmed = async (user) => {
   if (!user.confirmed) {
     await userService.rewardUserAction(user.ref, WFAIR_REWARDS.referral);
+
+    if(process.env.ENABLE_REWARD_SYSTEM) {
+      const prepareEventMsg = {
+        event: notificationEvents.EVENT_USER_CONFIRMED_WITH_REF,
+        data: {
+          producer: 'user',
+          producerId: user.ref,
+          data: {
+            user: user._id,
+            referred: user.ref
+          }
+        },
+      }
+
+      publishEvent(prepareEventMsg.event, prepareEventMsg.data);
+
+      await checkDirectEvents(prepareEventMsg).catch((err)=> {
+        console.error('[Reward system err]', err);
+      })
+    }
+
     await userService.createUser(user);
     user.confirmed = true;
   }

@@ -20,6 +20,10 @@ const checkDirectEvents = async ({event, data}) => {
   switch (event) {
     case 'Notification/EVENT_USER_SIGNED_IN':
       return await dailyLogin(params)
+    case 'Notification/EVENT_USER_CONFIRMED_WITH_REF':
+      console.log('params', params);
+      // return await userRefsHandling(params)
+      return null
     default:
       return null
   }
