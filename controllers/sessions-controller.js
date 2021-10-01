@@ -14,18 +14,14 @@ const { publishEvent, notificationEvents } = require('../services/notification-s
 module.exports = {
   async createUser(req, res, next) {
     const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return next(new ErrorHandler(422, errors));
-    }
+    if (!errors.isEmpty()) return next(new ErrorHandler(422, errors));
 
     try {
       const { password, email, username } = req.body;
 
       const existing = await userApi.getUserByIdEmailPhoneOrUsername(email);
 
-      if (existing) {
-        return next(new ErrorHandler(400, 'User exists'));
-      }
+      if (existing) return next(new ErrorHandler(400, 'User exists already'));
 
       // init data
       const wFairUserId = new ObjectId().toHexString();
@@ -33,7 +29,7 @@ module.exports = {
       const passwordHash = await bcrypt.hash(password, 8);
 
       // create auth0 user
-      const auth0User = auth0Service.createUser({
+      const auth0User = await auth0Service.createUser(wFairUserId, {
         email,
         username: username || `wallfair-${counter}`,
         password,
@@ -43,8 +39,11 @@ module.exports = {
           appId: wFairUserId,
         },
       });
+      logger.info("Created auth0User", auth0User)
 
-      if (!auth0User) throw new Error("Couldn't create auth0 user")
+      if (!auth0User) {
+        return next(new ErrorHandler(500, "Couldn't create auth0 user"));
+      }
 
       const createdUser = await userApi.createUser({
         _id: wFairUserId,
@@ -56,6 +55,10 @@ module.exports = {
         },
         auth0Id: auth0User.user_id,
       });
+      logger.info("Created WFair user", createdUser)
+      if (!createdUser) {
+        return next(new ErrorHandler(500, "Couldn't create WFAIR user"));
+      }
 
       // TODO: When there's time, delete Auth0 user if WFAIR creation fails
 
