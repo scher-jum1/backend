@@ -16,18 +16,18 @@ const {mintUser} = require('../../../services/user-service')
 const rewardRecord = {
   userId: null,
   payload: {
-    rewardType: rewardTypes.ON_SHARED_LINK_FIRST_VISIT.type,
+    rewardType: rewardTypes.ON_BETTED_MAX_STAKE_IN_ROW.type,
     amountAwarded: null,
-    byRef: null
+    timesInRow: null
   },
-  category: rewardTypes.ON_SHARED_LINK_FIRST_VISIT.category
+  category: rewardTypes.ON_BETTED_MAX_STAKE_IN_ROW.category
 }
 
-/** Someone has been visited a shared link,
- * Ideally EVENT_USER_SHARED_LINK_FIRST_VISIT, should be triggered just once, after first visit of the shared link)
+/** Someone has betted max stake x times in a row
  * Conditions:
- * - shared a link will be full filled, when anyone visit the link with someone ref id
+ * - bet max stake 5 times in a row, this event should be emmitted correctly from frontend, to trigger the handler
  * - max total amount defined
+ * - only once per lifetime
  * */
 
 const handle = async (params) => {
@@ -35,19 +35,20 @@ const handle = async (params) => {
 
   _.set(rewardRecord, 'userId', userId);
 
-  const isAlreadyExist = await getUserRewards({userId, 'payload.rewardType': rewardTypes.ON_SHARED_LINK_FIRST_VISIT.type}).catch((err)=> {
+  const isAlreadyExist = await getUserRewards({userId, 'payload.rewardType': rewardTypes.ON_BETTED_MAX_STAKE_IN_ROW.type}).catch((err)=> {
     console.error(err);
   });
 
   if(isAlreadyExist.length === 0) {
-    _.set(rewardRecord, 'payload.amountAwarded', rewardTypes.ON_SHARED_LINK_FIRST_VISIT.singleActionReward);
+    _.set(rewardRecord, 'payload.amountAwarded', rewardTypes.ON_BETTED_MAX_STAKE_IN_ROW.singleActionReward);
+    _.set(rewardRecord, 'payload.timesInRow', 5); // just 5 for now
 
     await createReward(rewardRecord).catch((err)=> {
       console.error(err);
     });
 
     await updateUserTrackers(userId, {
-      $inc: { ['trackers.rewarded.' + rewardTypes.ON_SHARED_LINK_FIRST_VISIT.type] : rewardTypes.ON_SHARED_LINK_FIRST_VISIT.singleActionReward}
+      $inc: { ['trackers.rewarded.' + rewardTypes.ON_BETTED_MAX_STAKE_IN_ROW.type] : rewardTypes.ON_BETTED_MAX_STAKE_IN_ROW.singleActionReward}
     }).catch((err)=> {
       console.error(err);
     });

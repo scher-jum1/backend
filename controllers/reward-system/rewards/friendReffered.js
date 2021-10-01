@@ -50,7 +50,7 @@ const handle = async (params) => {
   _.set(rewardRecordFriend, 'userId', userId);
 
   if (isInfluencer) {
-    const rewardTrackerInfluencer = _.get(userRecord, `trackers.${rewardTrackerInfluencer.payload.rewardType}`, 0);
+    const rewardTrackerInfluencer = _.get(userRecord, `trackers.rewarded.${rewardTrackerInfluencer.payload.rewardType}`, 0);
     if (rewardTrackerInfluencer < rewardTypes.ON_SIGNED_UP_BY_INFLUENCER.maxReward) {
       _.set(rewardRecordInfluencer, 'payload.amountAwarded', rewardTypes.ON_SIGNED_UP_BY_INFLUENCER.singleActionReward);
 
@@ -59,7 +59,7 @@ const handle = async (params) => {
       });
 
       await updateUserTrackers(userId, {
-        $inc: {['trackers.' + rewardTypes.ON_SIGNED_UP_BY_INFLUENCER.type]: rewardTypes.ON_SIGNED_UP_BY_INFLUENCER.singleActionReward}
+        $inc: {['trackers.amounts' + rewardTypes.ON_SIGNED_UP_BY_INFLUENCER.type]: rewardTypes.ON_SIGNED_UP_BY_INFLUENCER.singleActionReward}
       }).catch((err) => {
         console.error(err);
       });
@@ -83,7 +83,7 @@ const handle = async (params) => {
       publishToBroadcast(eventStructure);
     }
   } else {
-    const rewardTrackerFriend = _.get(userRecord, `trackers.${rewardRecordFriend.payload.rewardType}`, 0);
+    const rewardTrackerFriend = _.get(userRecord, `trackers.rewarded.${rewardRecordFriend.payload.rewardType}`, 0);
 
     if (rewardTrackerFriend < rewardTypes.ON_SIGNED_UP_BY_FRIEND.maxReward) {
       _.set(rewardTrackerFriend, 'payload.amountAwarded', rewardTypes.ON_SIGNED_UP_BY_FRIEND.singleActionReward);
@@ -93,7 +93,7 @@ const handle = async (params) => {
       });
 
       await updateUserTrackers(userId, {
-        $inc: {['trackers.' + rewardTypes.ON_SIGNED_UP_BY_FRIEND.type]: rewardTypes.ON_SIGNED_UP_BY_FRIEND.singleActionReward}
+        $inc: {['trackers.rewarded.' + rewardTypes.ON_SIGNED_UP_BY_FRIEND.type]: rewardTypes.ON_SIGNED_UP_BY_FRIEND.singleActionReward}
       }).catch((err) => {
         console.error(err);
       });

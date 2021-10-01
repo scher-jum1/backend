@@ -38,6 +38,23 @@ module.exports = {
       singleActionReward: 200,
       maxReward: 200,
       category: 'general'
+    },
+    //EASTER EGGS
+    'ON_BETTED_MAX_STAKE_IN_ROW': {
+      type: 'ON_BETTED_MAX_STAKE_IN_ROW',
+      singleActionReward: 500,
+      maxReward: 500,
+      category: 'easter_egg'
+    },
+    'ON_GAME_PLAYED': {
+      type: 'ON_GAME_PLAYED',
+      category: 'easter_egg',
+      games: {
+        rosiGame: {
+          singleActionReward: 500,
+          maxReward: 500
+        }
+      }
     }
   }
 

@@ -23,7 +23,7 @@ const rewardRecord = {
 const handle = async (params) => {
   const {data, event, userId, userRecord} = params;
   const todayRange = prepareTimeRange('today');
-  const rewardTracker = _.get(userRecord, `trackers.${rewardRecord.payload.rewardType}`, 0);
+  const rewardTracker = _.get(userRecord, `trackers.rewarded.${rewardRecord.payload.rewardType}`, 0);
 
   _.set(rewardRecord, 'userId', userId);
 
@@ -39,7 +39,7 @@ const handle = async (params) => {
     });
 
     await updateUserTrackers(userId, {
-      $inc: { ['trackers.' + rewardTypes.ON_DAILY_LOGIN.type] : rewardTypes.ON_DAILY_LOGIN.singleActionReward}
+      $inc: { ['trackers.rewarded.' + rewardTypes.ON_DAILY_LOGIN.type] : rewardTypes.ON_DAILY_LOGIN.singleActionReward}
     }).catch((err)=> {
       console.error(err);
     });

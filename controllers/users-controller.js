@@ -145,7 +145,7 @@ const rewardRefUserIfNotConfirmed = async (user) => {
         },
       }
 
-      // publishEvent(prepareEventMsg.event, prepareEventMsg.data);
+      publishEvent(prepareEventMsg.event, prepareEventMsg.data);
 
       await checkDirectEvents(prepareEventMsg).catch((err)=> {
         console.error('[Reward system err]', err);
