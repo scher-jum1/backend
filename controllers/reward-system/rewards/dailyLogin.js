@@ -3,6 +3,7 @@ const rewardTypes = require('../constans').rewardTypes;
 const {prepareTimeRange} = require('../helpers')
 const {getUserRewards, createReward, updateUserTrackers} = require('../../../services/reward-system-service')
 const {saveEvent, notificationEvents, publishToBroadcast} = require('../../../services/notification-service');
+const {mintUser} = require('../../../services/user-service')
 
 const rewardRecord = {
   userId: null,
@@ -42,6 +43,11 @@ const handle = async (params) => {
     }).catch((err)=> {
       console.error(err);
     });
+
+    //add proper amount of tokens to the user
+    await mintUser(userId, rewardRecord.payload.amountAwarded).catch((err)=> {
+      console.error(err);
+    })
 
     //save event and emit on default channel
     const eventStructure = {

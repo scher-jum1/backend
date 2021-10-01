@@ -14,6 +14,7 @@ const mongoose = require('mongoose');
 const wallfair = require('@wallfair.io/wallfair-commons');
 const { handleError } = require('./util/error-handler');
 const jwt = require('jsonwebtoken');
+const websocketService = require("./services/websocket-service");
 
 let mongoURL = process.env.DB_CONNECTION;
 
@@ -195,6 +196,10 @@ async function main() {
     socket.on('joinRoom', (data) => websocketService.handleJoinRoom(socket, data, userId));
 
     socket.on('leaveRoom', (data) => websocketService.handleLeaveRoom(socket, data, userId));
+
+    socket.on('emitAction', (data) => {
+      if (userId) websocketService.handleEmitAction(socket, data, userId)
+    });
   });
 
   // Let server run and listen

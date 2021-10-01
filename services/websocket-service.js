@@ -71,6 +71,26 @@ exports.handleLeaveRoom = async function (socket, data) {
   }
 };
 
+/** here we will send some aditional events, needed for rewards, to avoid HTTP handshake overhead
+ * currently, if we need to save some action from frontend, we will send this on this channel and directly save in universalevents collection,
+ * so we could reuse them later on, checking for some logic in specific for rewards
+ *
+ * As alternative, we could consume some of them directly here and check for some reward logic, based on websocket message body
+ * */
+//
+// currently
+exports.handleEmitAction = async function (socket, data) {
+  try {
+    console.debug(LOG_TAG, data);
+
+    // await persist(data);
+    // emitToAllByEventId(roomId, 'chatMessage', responseData);
+  } catch (error) {
+    console.error(error);
+    console.log(LOG_TAG, 'failed to handle action', data);
+  }
+};
+
 exports.emitPlaceBetToAllByEventId = async (eventId, betId, user, amount, outcome) => {
   const message = 'dummy';
   const betPlacedData = {

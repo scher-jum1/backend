@@ -1,6 +1,8 @@
 const _ = require('lodash');
 const {getUserData} = require('../../services/reward-system-service')
 const dailyLogin = require('./rewards/dailyLogin');
+const friendReffered = require('./rewards/friendReffered');
+const sharedLinkVisit = require('./rewards/sharedLinkVisit');
 
 const checkDirectEvents = async ({event, data}) => {
   const params = {
@@ -21,9 +23,9 @@ const checkDirectEvents = async ({event, data}) => {
     case 'Notification/EVENT_USER_SIGNED_IN':
       return await dailyLogin(params)
     case 'Notification/EVENT_USER_CONFIRMED_WITH_REF':
-      console.log('params', params);
-      // return await userRefsHandling(params)
-      return null
+      return await friendReffered(params)
+    case 'Notification/EVENT_USER_SHARED_LINK_FIRST_VISIT':
+      return await sharedLinkVisit(params)
     default:
       return null
   }

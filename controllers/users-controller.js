@@ -134,7 +134,7 @@ const rewardRefUserIfNotConfirmed = async (user) => {
 
     if(process.env.ENABLE_REWARD_SYSTEM) {
       const prepareEventMsg = {
-        event: notificationEvents.EVENT_USER_CONFIRMED_WITH_REF,
+        event: notificationEvents.EVENT_USER_SIGN_UP_CONFIRMED_WITH_REF,
         data: {
           producer: 'user',
           producerId: user.ref,
@@ -145,7 +145,7 @@ const rewardRefUserIfNotConfirmed = async (user) => {
         },
       }
 
-      publishEvent(prepareEventMsg.event, prepareEventMsg.data);
+      // publishEvent(prepareEventMsg.event, prepareEventMsg.data);
 
       await checkDirectEvents(prepareEventMsg).catch((err)=> {
         console.error('[Reward system err]', err);
