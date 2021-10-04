@@ -13,24 +13,27 @@ const {
 } = require('../../../services/notification-service');
 const {mintUser} = require('../../../services/user-service')
 
+const cfgRefInlfuencer = rewardTypes.ON_SIGNED_UP_BY_INFLUENCER;
+const cfgRefFriend = rewardTypes.ON_SIGNED_UP_BY_FRIEND;
+
 const rewardRecordInfluencer = {
   userId: null,
   payload: {
-    rewardType: rewardTypes.ON_SIGNED_UP_BY_INFLUENCER.type,
+    rewardType: cfgRefInlfuencer.type,
     amountAwarded: null,
     byRef: null
   },
-  category: rewardTypes.ON_SIGNED_UP_BY_INFLUENCER.category
+  category: cfgRefInlfuencer.category
 }
 
 const rewardRecordFriend = {
   userId: null,
   payload: {
-    rewardType: rewardTypes.ON_SIGNED_UP_BY_FRIEND.type,
+    rewardType: cfgRefFriend.type,
     amountAwarded: null,
     byRef: null
   },
-  category: rewardTypes.ON_SIGNED_UP_BY_FRIEND.category
+  category: cfgRefFriend.category
 }
 
 /** Someone has been registered and confirmed through ref link
@@ -44,22 +47,22 @@ const handle = async (params) => {
   // const todayRange = prepareTimeRange('today');
   const refId = _.get(data, 'data.referred');
 
-  const isInfluencer = rewardTypes.ON_SIGNED_UP_BY_INFLUENCER.influencers.indexOf(refId) > -1 ? true : false;
+  const isInfluencer = cfgRefInlfuencer.influencers.indexOf(refId) > -1 ? true : false;
 
   _.set(rewardRecordInfluencer, 'userId', userId);
   _.set(rewardRecordFriend, 'userId', userId);
 
   if (isInfluencer) {
     const rewardTrackerInfluencer = _.get(userRecord, `trackers.rewarded.${rewardTrackerInfluencer.payload.rewardType}`, 0);
-    if (rewardTrackerInfluencer < rewardTypes.ON_SIGNED_UP_BY_INFLUENCER.maxReward) {
-      _.set(rewardRecordInfluencer, 'payload.amountAwarded', rewardTypes.ON_SIGNED_UP_BY_INFLUENCER.singleActionReward);
+    if (rewardTrackerInfluencer < cfgRefInlfuencer.maxReward) {
+      _.set(rewardRecordInfluencer, 'payload.amountAwarded', cfgRefInlfuencer.singleActionReward);
 
       await createReward(rewardRecordInfluencer).catch((err) => {
         console.error(err);
       });
 
       await updateUserTrackers(userId, {
-        $inc: {['trackers.amounts' + rewardTypes.ON_SIGNED_UP_BY_INFLUENCER.type]: rewardTypes.ON_SIGNED_UP_BY_INFLUENCER.singleActionReward}
+        $inc: {['trackers.amounts' + cfgRefInlfuencer.type]: cfgRefInlfuencer.singleActionReward}
       }).catch((err) => {
         console.error(err);
       });
@@ -85,8 +88,8 @@ const handle = async (params) => {
   } else {
     const rewardTrackerFriend = _.get(userRecord, `trackers.rewarded.${rewardRecordFriend.payload.rewardType}`, 0);
 
-    if (rewardTrackerFriend < rewardTypes.ON_SIGNED_UP_BY_FRIEND.maxReward) {
-      _.set(rewardTrackerFriend, 'payload.amountAwarded', rewardTypes.ON_SIGNED_UP_BY_FRIEND.singleActionReward);
+    if (rewardTrackerFriend < cfgRefFriend.maxReward) {
+      _.set(rewardTrackerFriend, 'payload.amountAwarded', cfgRefFriend.singleActionReward);
 
       await createReward(rewardTrackerFriend).catch((err) => {
         console.error(err);

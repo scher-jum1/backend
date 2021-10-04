@@ -15,14 +15,16 @@ const {
 } = require('../../../services/notification-service');
 const {mintUser} = require('../../../services/user-service')
 
+const cfgRef = rewardTypes.ON_USER_WAS_ACTIVE_LONG_TIME;
+
 const rewardRecord = {
   userId: null,
   payload: {
-    rewardType: rewardTypes.ON_USER_WAS_ACTIVE_LONG_TIME.type,
+    rewardType: cfgRef.type,
     amountAwarded: null,
     activityHours: null //activity hours per user
   },
-  category: rewardTypes.ON_USER_WAS_ACTIVE_LONG_TIME.category
+  category: cfgRef.category
 }
 
 /** Someone was being active for 4 hours, we need to define what means - 'being active', we need to emit event from frontend about how long user is active (EVENT_USER_WAS_ACTIVE_LONG_TIME)
@@ -42,22 +44,22 @@ const handle = async (params) => {
 
   const isAlreadyExist = await getUserRewards({
     userId,
-    'payload.rewardType': rewardTypes.ON_USER_WAS_ACTIVE_LONG_TIME.type
+    'payload.rewardType': cfgRef.type
   }).catch((err)=> {
     console.error(err);
   });
 
   //Only once is allowed
-  if(isAlreadyExist.length === 0 && rewardTracker >= rewardTypes.ON_USER_WAS_ACTIVE_LONG_TIME.maxReward && parseInt(activityHours, 10) >= rewardTypes.ON_USER_WAS_ACTIVE_LONG_TIME.timeInHours) {
-    _.set(rewardRecord, 'payload.amountAwarded', rewardTypes.ON_USER_WAS_ACTIVE_LONG_TIME.singleActionReward);
-    _.set(rewardRecord, 'payload.activityHours', rewardTypes.ON_USER_WAS_ACTIVE_LONG_TIME.timeInHours);
+  if(isAlreadyExist.length === 0 && rewardTracker >= cfgRef.maxReward && parseInt(activityHours, 10) >= cfgRef.timeInHours) {
+    _.set(rewardRecord, 'payload.amountAwarded', cfgRef.singleActionReward);
+    _.set(rewardRecord, 'payload.activityHours', cfgRef.timeInHours);
 
     await createReward(rewardRecord).catch((err)=> {
       console.error(err);
     });
 
     await updateUserTrackers(userId, {
-      $inc: { ['trackers.rewarded.' + rewardTypes.ON_USER_WAS_ACTIVE_LONG_TIME.type] : rewardTypes.ON_USER_WAS_ACTIVE_LONG_TIME.singleActionReward}
+      $inc: { ['trackers.rewarded.' + cfgRef.type] : cfgRef.singleActionReward}
     }).catch((err)=> {
       console.error(err);
     });

@@ -15,14 +15,16 @@ const {
 } = require('../../../services/notification-service');
 const {mintUser} = require('../../../services/user-service')
 
+const cfgRef = rewardTypes.ON_GAME_PLAYED_X_DAYS_IN_ROW;
+
 const rewardRecord = {
   userId: null,
   payload: {
-    rewardType: rewardTypes.ON_GAME_PLAYED_X_DAYS_IN_ROW.type,
+    rewardType: cfgRef.type,
     amountAwarded: null,
     days: null //days in row
   },
-  category: rewardTypes.ON_GAME_PLAYED_X_DAYS_IN_ROW.category
+  category: cfgRef.category
 }
 
 /** Someone has played in x game x times x days in a row
@@ -42,14 +44,14 @@ const handle = async (params) => {
 
   const isAlreadyExist = await getUserRewards({
     userId,
-    'payload.rewardType': rewardTypes.ON_GAME_PLAYED_X_DAYS_IN_ROW.type
+    'payload.rewardType': cfgRef.type
   }).catch((err)=> {
     console.error(err);
   });
 
   //check days in row
   const findXDaysDate = new Date();
-  findXDaysDate.setDate(findXDaysDate.getDate() - rewardTypes.ON_GAME_PLAYED_X_DAYS_IN_ROW.daysInRow);
+  findXDaysDate.setDate(findXDaysDate.getDate() - cfgRef.daysInRow);
   const daysInRow = await getUniversalEvents({
     userId,
     'type': params.event,
@@ -63,16 +65,16 @@ const handle = async (params) => {
   });
 
   //Only once is allowed
-  if(isAlreadyExist.length === 0 && rewardTracker >= rewardTypes.ON_GAME_PLAYED_X_DAYS_IN_ROW.maxReward && groupByDateCounter.length === rewardTypes.ON_GAME_PLAYED_X_DAYS_IN_ROW.daysInRow) {
-    _.set(rewardRecord, 'payload.amountAwarded', rewardTypes.ON_GAME_PLAYED_X_DAYS_IN_ROW.games[gameName].singleActionReward);
-    _.set(rewardRecord, 'payload.days', rewardTypes.ON_GAME_PLAYED_X_DAYS_IN_ROW.daysInRow);
+  if(isAlreadyExist.length === 0 && rewardTracker >= cfgRef.maxReward && groupByDateCounter.length === cfgRef.daysInRow) {
+    _.set(rewardRecord, 'payload.amountAwarded', cfgRef.games[gameName].singleActionReward);
+    _.set(rewardRecord, 'payload.days', cfgRef.daysInRow);
 
     await createReward(rewardRecord).catch((err)=> {
       console.error(err);
     });
 
     await updateUserTrackers(userId, {
-      $inc: { ['trackers.rewarded.' + rewardTypes.ON_GAME_PLAYED_X_DAYS_IN_ROW.type] : rewardTypes.ON_GAME_PLAYED_X_DAYS_IN_ROW.singleActionReward}
+      $inc: { ['trackers.rewarded.' + cfgRef.type] : cfgRef.singleActionReward}
     }).catch((err)=> {
       console.error(err);
     });

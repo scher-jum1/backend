@@ -15,13 +15,15 @@ const {
 } = require('../../../services/notification-service');
 const {mintUser} = require('../../../services/user-service')
 
+const cfgRef = rewardTypes.ON_BIRTHDATE_GIVEN;
+
 const rewardRecord = {
   userId: null,
   payload: {
-    rewardType: rewardTypes.ON_BIRTHDATE_GIVEN.type,
+    rewardType: cfgRef.type,
     amountAwarded: null
   },
-  category: rewardTypes.ON_BIRTHDATE_GIVEN.category
+  category: cfgRef.category
 }
 
 /** User gave bithdate during registration or profile update (@todo we dont have birthdate yet in user collection, profile update missing?)
@@ -40,21 +42,21 @@ const handle = async (params) => {
 
   const isAlreadyExist = await getUserRewards({
     userId,
-    'payload.rewardType': rewardTypes.ON_BIRTHDATE_GIVEN.type
+    'payload.rewardType': cfgRef.type
   }).catch((err)=> {
     console.error(err);
   });
 
   //Only once is allowed
-  if(isAlreadyExist.length === 0 && rewardTracker >= rewardTypes.ON_BIRTHDATE_GIVEN.maxReward) {
-    _.set(rewardRecord, 'payload.amountAwarded', rewardTypes.ON_BIRTHDATE_GIVEN.singleActionReward);
+  if(isAlreadyExist.length === 0 && rewardTracker >= cfgRef.maxReward) {
+    _.set(rewardRecord, 'payload.amountAwarded', cfgRef.singleActionReward);
 
     await createReward(rewardRecord).catch((err)=> {
       console.error(err);
     });
 
     await updateUserTrackers(userId, {
-      $inc: { ['trackers.rewarded.' + rewardTypes.ON_BIRTHDATE_GIVEN.type] : rewardTypes.ON_BIRTHDATE_GIVEN.singleActionReward}
+      $inc: { ['trackers.rewarded.' + cfgRef.type] : cfgRef.singleActionReward}
     }).catch((err)=> {
       console.error(err);
     });

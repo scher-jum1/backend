@@ -1,26 +1,26 @@
 const _ = require('lodash');
 const rewardTypes = require('../constans').rewardTypes;
-const {prepareTimeRange} = require('../helpers')
 const {
   getUserRewards,
   createReward,
   updateUserTrackers
 } = require('../../../services/reward-system-service')
 const {
-  saveEvent,
   notificationEvents,
   publishToBroadcast
 } = require('../../../services/notification-service');
 const {mintUser} = require('../../../services/user-service')
 
+const cfgRef = rewardTypes.ON_SHARED_LINK_FIRST_VISIT;
+
 const rewardRecord = {
   userId: null,
   payload: {
-    rewardType: rewardTypes.ON_SHARED_LINK_FIRST_VISIT.type,
+    rewardType: cfgRef.type,
     amountAwarded: null,
     byRef: null
   },
-  category: rewardTypes.ON_SHARED_LINK_FIRST_VISIT.category
+  category: cfgRef.category
 }
 
 /** Someone has been visited a shared link,
@@ -35,19 +35,19 @@ const handle = async (params) => {
 
   _.set(rewardRecord, 'userId', userId);
 
-  const isAlreadyExist = await getUserRewards({userId, 'payload.rewardType': rewardTypes.ON_SHARED_LINK_FIRST_VISIT.type}).catch((err)=> {
+  const isAlreadyExist = await getUserRewards({userId, 'payload.rewardType': cfgRef.type}).catch((err)=> {
     console.error(err);
   });
 
   if(isAlreadyExist.length === 0) {
-    _.set(rewardRecord, 'payload.amountAwarded', rewardTypes.ON_SHARED_LINK_FIRST_VISIT.singleActionReward);
+    _.set(rewardRecord, 'payload.amountAwarded', cfgRef.singleActionReward);
 
     await createReward(rewardRecord).catch((err)=> {
       console.error(err);
     });
 
     await updateUserTrackers(userId, {
-      $inc: { ['trackers.rewarded.' + rewardTypes.ON_SHARED_LINK_FIRST_VISIT.type] : rewardTypes.ON_SHARED_LINK_FIRST_VISIT.singleActionReward}
+      $inc: { ['trackers.rewarded.' + cfgRef.type] : cfgRef.singleActionReward}
     }).catch((err)=> {
       console.error(err);
     });

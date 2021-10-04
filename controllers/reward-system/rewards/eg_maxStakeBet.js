@@ -13,14 +13,16 @@ const {
 } = require('../../../services/notification-service');
 const {mintUser} = require('../../../services/user-service')
 
+const cfgRef = rewardTypes.ON_BETTED_MAX_STAKE_IN_ROW;
+
 const rewardRecord = {
   userId: null,
   payload: {
-    rewardType: rewardTypes.ON_BETTED_MAX_STAKE_IN_ROW.type,
+    rewardType: cfgRef.type,
     amountAwarded: null,
     timesInRow: null
   },
-  category: rewardTypes.ON_BETTED_MAX_STAKE_IN_ROW.category
+  category: cfgRef.category
 }
 
 /** Someone has betted max stake x times in a row
@@ -35,12 +37,12 @@ const handle = async (params) => {
 
   _.set(rewardRecord, 'userId', userId);
 
-  const isAlreadyExist = await getUserRewards({userId, 'payload.rewardType': rewardTypes.ON_BETTED_MAX_STAKE_IN_ROW.type}).catch((err)=> {
+  const isAlreadyExist = await getUserRewards({userId, 'payload.rewardType': cfgRef.type}).catch((err)=> {
     console.error(err);
   });
 
   if(isAlreadyExist.length === 0) {
-    _.set(rewardRecord, 'payload.amountAwarded', rewardTypes.ON_BETTED_MAX_STAKE_IN_ROW.singleActionReward);
+    _.set(rewardRecord, 'payload.amountAwarded', rewardTypes.cfgRef.singleActionReward);
     _.set(rewardRecord, 'payload.timesInRow', 5); // just 5 for now
 
     await createReward(rewardRecord).catch((err)=> {
@@ -48,7 +50,7 @@ const handle = async (params) => {
     });
 
     await updateUserTrackers(userId, {
-      $inc: { ['trackers.rewarded.' + rewardTypes.ON_BETTED_MAX_STAKE_IN_ROW.type] : rewardTypes.ON_BETTED_MAX_STAKE_IN_ROW.singleActionReward}
+      $inc: { ['trackers.rewarded.' + rewardTypes.cfgRef.type] : rewardTypes.cfgRef.singleActionReward}
     }).catch((err)=> {
       console.error(err);
     });

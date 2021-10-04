@@ -13,15 +13,17 @@ const {
 } = require('../../../services/notification-service');
 const {mintUser} = require('../../../services/user-service')
 
+const cfgRef = rewardTypes.ON_GAME_PLAYED;
+
 const rewardRecord = {
   userId: null,
   payload: {
-    rewardType: rewardTypes.ON_GAME_PLAYED.type,
+    rewardType: cfgRef.type,
     amountAwarded: null,
     totalTimes: 200, //just one game for now, it could be static
     gameName: null
   },
-  category: rewardTypes.ON_GAME_PLAYED.category
+  category: cfgRef.category
 }
 
 /** Someone has played in x game x times and reached some specific amount like 200
@@ -42,7 +44,7 @@ const handle = async (params) => {
 
   const isAlreadyExist = await getUserRewards({
     userId,
-    'payload.rewardType': rewardTypes.ON_GAME_PLAYED.type,
+    'payload.rewardType': cfgRef.type,
     'payload.gameName': gameName
   }).catch((err)=> {
     console.error(err);
@@ -50,7 +52,7 @@ const handle = async (params) => {
 
   //increment progress and check condition
   const updatedUserRecord = await updateUserTrackers(userId, {
-    $inc: { ['trackers.progress.' + rewardTypes.ON_GAME_PLAYED.type] : 1}
+    $inc: { ['trackers.progress.' + cfgRef.type] : 1}
   }).catch((err)=> {
     console.error(err);
   });
@@ -58,8 +60,8 @@ const handle = async (params) => {
   const checkGameProgress = _.get(updatedUserRecord, `trackers.progress.${rewardRecord.payload.rewardType}.${gameName}`, 0);
 
   //Only once is allowed
-  if(isAlreadyExist.length === 0 && checkGameProgress >= 200 && rewardTracker >= rewardTypes.ON_GAME_PLAYED.maxReward) {
-    _.set(rewardRecord, 'payload.amountAwarded', rewardTypes.ON_GAME_PLAYED.games[gameName].singleActionReward);
+  if(isAlreadyExist.length === 0 && checkGameProgress >= 200 && rewardTracker >= cfgRef.maxReward) {
+    _.set(rewardRecord, 'payload.amountAwarded', cfgRef.games[gameName].singleActionReward);
     _.set(rewardRecord, 'payload.gameName', gameName);
     _.set(rewardRecord, 'payload.totalTimes', checkGameProgress);
 
@@ -68,7 +70,7 @@ const handle = async (params) => {
     });
 
     await updateUserTrackers(userId, {
-      $inc: { ['trackers.rewarded.' + rewardTypes.ON_GAME_PLAYED.type] : rewardTypes.ON_GAME_PLAYED.singleActionReward}
+      $inc: { ['trackers.rewarded.' + cfgRef.type] : cfgRef.singleActionReward}
     }).catch((err)=> {
       console.error(err);
     });

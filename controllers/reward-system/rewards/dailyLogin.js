@@ -5,13 +5,15 @@ const {getUserRewards, createReward, updateUserTrackers} = require('../../../ser
 const {saveEvent, notificationEvents, publishToBroadcast} = require('../../../services/notification-service');
 const {mintUser} = require('../../../services/user-service')
 
+const cfgRef = rewardTypes.ON_DAILY_LOGIN;
+
 const rewardRecord = {
   userId: null,
   payload: {
-    rewardType: rewardTypes.ON_DAILY_LOGIN.type,
+    rewardType: cfgRef.type,
     amountAwarded: null
   },
-  category: rewardTypes.ON_DAILY_LOGIN.category
+  category: cfgRef.category
 }
 
 /** Daily log in reward
@@ -31,15 +33,15 @@ const handle = async (params) => {
     console.error(err);
   });
 
-  if(isDailyExist.length === 0 && rewardTracker < rewardTypes.ON_DAILY_LOGIN.maxReward) {
-    _.set(rewardRecord, 'payload.amountAwarded', rewardTypes.ON_DAILY_LOGIN.singleActionReward);
+  if(isDailyExist.length === 0 && rewardTracker < cfgRef.maxReward) {
+    _.set(rewardRecord, 'payload.amountAwarded', cfgRef.singleActionReward);
 
     await createReward(rewardRecord).catch((err)=> {
       console.error(err);
     });
 
     await updateUserTrackers(userId, {
-      $inc: { ['trackers.rewarded.' + rewardTypes.ON_DAILY_LOGIN.type] : rewardTypes.ON_DAILY_LOGIN.singleActionReward}
+      $inc: { ['trackers.rewarded.' + cfgRef.type] : cfgRef.singleActionReward}
     }).catch((err)=> {
       console.error(err);
     });
