@@ -55,6 +55,20 @@ module.exports = {
           maxReward: 500
         }
       }
+    },
+    'ON_GAME_PLAYED_X_DAYS_IN_ROW': {
+      type: 'ON_GAME_PLAYED_X_DAYS_IN_ROW',
+      category: 'easter_egg',
+      singleActionReward: 500,
+      maxReward: 500,
+      daysInRow: 6
+    },
+    'ON_USER_WAS_ACTIVE_LONG_TIME': {
+      type: 'ON_USER_WAS_ACTIVE_LONG_TIME',
+      singleActionReward: 200,
+      maxReward: 200,
+      timeInHours: 4,
+      category: 'easter_egg'
     }
   }
 

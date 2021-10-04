@@ -5,6 +5,7 @@ const friendReffered = require('./rewards/friendReffered');
 const sharedLinkVisit = require('./rewards/sharedLinkVisit');
 const eg_maxStakeBet = require('./rewards/eg_maxStakeBet');
 const eg_playedAGame = require('./rewards/eg_playedAGame');
+const eg_playedAGameDaysInRow = require('./rewards/eg_playedAGameDaysInRow');
 
 /**
  * GENERAL NOTES
@@ -29,7 +30,7 @@ const eg_playedAGame = require('./rewards/eg_playedAGame');
  * then increase User.trackers.progress and check if user is obligate to receive some reward (only for type of rewards we need such 'progress_state'
  * - for every event (if possible), we dont need to call universal_events collection and use just the data provided,
  * next to fn trigger place (publish event)
- *
+ * - some rewards will be triggered and processed by cron / jobs at specific time , example: monthly / weekly leaderboards
  */
 
 /**
@@ -64,7 +65,12 @@ const checkDirectEvents = async ({event, data}) => {
     case 'Notification/EVENT_USER_BETTED_MAX_STAKE_5_TIMES_IN_ROW':
       return await eg_maxStakeBet(params)
     case 'Notification/EVENT_USER_PLAYED_A_GAME':
-      return await eg_playedAGame(params)
+      //here will make sense to check as well: user played 6 days in a row
+      return await Promise.all([eg_playedAGame(params), eg_playedAGameDaysInRow(params)]);
+    case 'Notification/EVENT_USER_IS_ACTIVE_FOR_X':
+      //here we will send event through websocket from frontend, for value we needed (in this case, we will track user activity time in frontend and
+      // if this reach specific amount we will send this event type
+      return await eg_playedAGame(params);
     default:
       return null
   }
