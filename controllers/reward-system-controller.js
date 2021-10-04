@@ -2,8 +2,16 @@ const _ = require('lodash');
 const {getDayOfYear} = require("date-fns");
 const {rewardTypes} = require('../constants/rewards');
 const {prepareTimeRange} = require('../util/rewardsUtils');
-const {getUserRewards, createReward, updateUserTrackers} = require('../services/reward-system-service')
-const {saveEvent, notificationEvents, publishToBroadcast} = require('../services/notification-service');
+const {
+  getUserRewards,
+  createReward,
+  updateUserTrackers
+} = require('../services/reward-system-service')
+const {
+  saveEvent,
+  notificationEvents,
+  publishToBroadcast
+} = require('../services/notification-service');
 const {mintUser} = require('../services/user-service')
 const {getUserData, getUniversalEvents} = require('../services/reward-system-service')
 
@@ -16,53 +24,43 @@ const dailyLogin = async (params) => {
   const cfgRef = rewardTypes.ON_DAILY_LOGIN;
   const rewardRecord = {
     userId: null,
-    payload: {
-      rewardType: cfgRef.type,
-      amountAwarded: null
-    },
+    rewardType: cfgRef.type,
+    amountAwarded: null,
     category: cfgRef.category
   }
 
   const {data, event, userId, userRecord} = params;
   const todayRange = prepareTimeRange('today');
-  const rewardTracker = _.get(userRecord, `trackers.rewarded.${rewardRecord.payload.rewardType}`, 0);
+  const rewardTracker = _.get(userRecord, `trackers.rewarded.${rewardRecord.rewardType}`, 0);
 
   _.set(rewardRecord, 'userId', userId);
 
-  const isDailyExist = await getUserRewards({userId, createdAt: {$gte: todayRange.start, $lt: todayRange.end}}).catch((err)=> {
+  const isDailyExist = await getUserRewards({
+    type: notificationEvents.EVENT_USER_REWARDED,
+    'data.rewardType': rewardRecord.rewardType,
+    userId,
+    createdAt: {$gte: todayRange.start, $lt: todayRange.end}
+  }).catch((err) => {
     console.error(err);
   });
 
-  if(isDailyExist.length === 0 && rewardTracker < cfgRef.maxReward) {
-    _.set(rewardRecord, 'payload.amountAwarded', cfgRef.singleActionReward);
+  if (isDailyExist.length === 0 && rewardTracker < cfgRef.maxReward) {
+    _.set(rewardRecord, 'amountAwarded', cfgRef.singleActionReward);
 
-    await createReward(rewardRecord).catch((err)=> {
+    await createReward(rewardRecord).catch((err) => {
       console.error(err);
     });
 
     await updateUserTrackers(userId, {
-      $inc: { ['trackers.rewarded.' + cfgRef.type] : cfgRef.singleActionReward}
-    }).catch((err)=> {
+      $inc: {['trackers.rewarded.' + cfgRef.type]: cfgRef.singleActionReward}
+    }).catch((err) => {
       console.error(err);
     });
 
     //add proper amount of tokens to the user
-    await mintUser(userId, rewardRecord.payload.amountAwarded).catch((err)=> {
+    await mintUser(userId, rewardRecord.amountAwarded).catch((err) => {
       console.error(err);
     })
-
-    //save event and emit on default channel
-    const eventStructure = {
-      event: notificationEvents.EVENT_USER_REWARDED,
-      data: {
-        producerId: rewardRecord.userId,
-        producer: 'system',
-        data: rewardRecord
-      }
-    };
-
-    saveEvent(eventStructure.event, eventStructure.data);
-    publishToBroadcast(eventStructure);
   }
 }
 
@@ -77,21 +75,17 @@ const friendReffered = async (params) => {
 
   const rewardRecordInfluencer = {
     userId: null,
-    payload: {
-      rewardType: cfgRefInlfuencer.type,
-      amountAwarded: null,
-      byRef: null
-    },
+    rewardType: cfgRefInlfuencer.type,
+    amountAwarded: null,
+    byRef: null,
     category: cfgRefInlfuencer.category
   }
 
   const rewardRecordFriend = {
     userId: null,
-    payload: {
-      rewardType: cfgRefFriend.type,
-      amountAwarded: null,
-      byRef: null
-    },
+    rewardType: cfgRefFriend.type,
+    amountAwarded: null,
+    byRef: null,
     category: cfgRefFriend.category
   }
 
@@ -105,9 +99,9 @@ const friendReffered = async (params) => {
   _.set(rewardRecordFriend, 'userId', userId);
 
   if (isInfluencer) {
-    const rewardTrackerInfluencer = _.get(userRecord, `trackers.rewarded.${rewardTrackerInfluencer.payload.rewardType}`, 0);
+    const rewardTrackerInfluencer = _.get(userRecord, `trackers.rewarded.${rewardTrackerInfluencer.rewardType}`, 0);
     if (rewardTrackerInfluencer < cfgRefInlfuencer.maxReward) {
-      _.set(rewardRecordInfluencer, 'payload.amountAwarded', cfgRefInlfuencer.singleActionReward);
+      _.set(rewardRecordInfluencer, 'amountAwarded', cfgRefInlfuencer.singleActionReward);
 
       await createReward(rewardRecordInfluencer).catch((err) => {
         console.error(err);
@@ -120,28 +114,15 @@ const friendReffered = async (params) => {
       });
 
       //add proper amount of tokens to the user
-      await mintUser(userId, rewardRecordInfluencer.payload.amountAwarded).catch((err) => {
+      await mintUser(userId, rewardRecordInfluencer.amountAwarded).catch((err) => {
         console.error(err);
       })
-
-      // //save event and emit on default channel
-      const eventStructure = {
-        event: notificationEvents.EVENT_USER_REWARDED,
-        data: {
-          producerId: rewardRecordInfluencer.userId,
-          producer: 'system',
-          data: rewardRecordInfluencer
-        }
-      };
-      //should we save all kind of events in universalEvents when we have all necessary data?
-      // saveEvent(eventStructure.event, eventStructure.data);
-      publishToBroadcast(eventStructure);
     }
   } else {
-    const rewardTrackerFriend = _.get(userRecord, `trackers.rewarded.${rewardRecordFriend.payload.rewardType}`, 0);
+    const rewardTrackerFriend = _.get(userRecord, `trackers.rewarded.${rewardRecordFriend.rewardType}`, 0);
 
     if (rewardTrackerFriend < cfgRefFriend.maxReward) {
-      _.set(rewardTrackerFriend, 'payload.amountAwarded', cfgRefFriend.singleActionReward);
+      _.set(rewardTrackerFriend, 'amountAwarded', cfgRefFriend.singleActionReward);
 
       await createReward(rewardTrackerFriend).catch((err) => {
         console.error(err);
@@ -154,22 +135,9 @@ const friendReffered = async (params) => {
       });
 
       //add proper amount of tokens to the user
-      await mintUser(userId, rewardTrackerFriend.payload.amountAwarded).catch((err) => {
+      await mintUser(userId, rewardTrackerFriend.amountAwarded).catch((err) => {
         console.error(err);
       })
-
-      // save event and emit on default channel
-      const eventStructure = {
-        event: notificationEvents.EVENT_USER_REWARDED,
-        data: {
-          producerId: rewardTrackerFriend.userId,
-          producer: 'system',
-          data: rewardTrackerFriend
-        }
-      };
-      //should we save all kind of events in universalEvents when we have all necessary data?
-      // saveEvent(eventStructure.event, eventStructure.data);
-      publishToBroadcast(eventStructure);
     }
   }
 }
@@ -185,11 +153,9 @@ const sharedLinkVisit = async (params) => {
 
   const rewardRecord = {
     userId: null,
-    payload: {
-      rewardType: cfgRef.type,
-      amountAwarded: null,
-      byRef: null
-    },
+    rewardType: cfgRef.type,
+    amountAwarded: null,
+    byRef: null,
     category: cfgRef.category
   }
 
@@ -197,42 +163,30 @@ const sharedLinkVisit = async (params) => {
 
   _.set(rewardRecord, 'userId', userId);
 
-  const isAlreadyExist = await getUserRewards({userId, 'payload.rewardType': cfgRef.type}).catch((err)=> {
+  const isAlreadyExist = await getUserRewards({
+    userId,
+    'data.rewardType': cfgRef.type
+  }).catch((err) => {
     console.error(err);
   });
 
-  if(isAlreadyExist.length === 0) {
-    _.set(rewardRecord, 'payload.amountAwarded', cfgRef.singleActionReward);
+  if (isAlreadyExist.length === 0) {
+    _.set(rewardRecord, 'amountAwarded', cfgRef.singleActionReward);
 
-    await createReward(rewardRecord).catch((err)=> {
+    await createReward(rewardRecord).catch((err) => {
       console.error(err);
     });
 
     await updateUserTrackers(userId, {
-      $inc: { ['trackers.rewarded.' + cfgRef.type] : cfgRef.singleActionReward}
-    }).catch((err)=> {
+      $inc: {['trackers.rewarded.' + cfgRef.type]: cfgRef.singleActionReward}
+    }).catch((err) => {
       console.error(err);
     });
 
     //add proper amount of tokens to the user
-    await mintUser(userId, rewardRecord.payload.amountAwarded).catch((err)=> {
+    await mintUser(userId, rewardRecord.amountAwarded).catch((err) => {
       console.error(err);
     })
-
-    //save event and emit on default channel, just keep the default event structure, so we could save them easily
-    const eventStructure = {
-      event: notificationEvents.EVENT_USER_REWARDED,
-      data: {
-        producerId: rewardRecord.userId,
-        producer: 'system',
-        data: rewardRecord
-      }
-    };
-
-    //we dont need to save any helper events, because we are be able to fill the conditions without extra events checks
-    // saveEvent(eventStructure.event, eventStructure.data);
-    //@todo emit websocket message just for specific user channel, we need to add kind of listener in frontend
-    publishToBroadcast(eventStructure);
   }
 };
 
@@ -247,11 +201,9 @@ const eg_maxStakeBet = async (params) => {
 
   const rewardRecord = {
     userId: null,
-    payload: {
-      rewardType: cfgRef.type,
-      amountAwarded: null,
-      timesInRow: null
-    },
+    rewardType: cfgRef.type,
+    amountAwarded: null,
+    timesInRow: null,
     category: cfgRef.category
   }
 
@@ -259,43 +211,31 @@ const eg_maxStakeBet = async (params) => {
 
   _.set(rewardRecord, 'userId', userId);
 
-  const isAlreadyExist = await getUserRewards({userId, 'payload.rewardType': cfgRef.type}).catch((err)=> {
+  const isAlreadyExist = await getUserRewards({
+    userId,
+    'data.rewardType': cfgRef.type
+  }).catch((err) => {
     console.error(err);
   });
 
-  if(isAlreadyExist.length === 0) {
-    _.set(rewardRecord, 'payload.amountAwarded', rewardTypes.cfgRef.singleActionReward);
-    _.set(rewardRecord, 'payload.timesInRow', 5); // just 5 for now
+  if (isAlreadyExist.length === 0) {
+    _.set(rewardRecord, 'amountAwarded', cfgRef.singleActionReward);
+    _.set(rewardRecord, 'timesInRow', 5); // just 5 for now
 
-    await createReward(rewardRecord).catch((err)=> {
+    await createReward(rewardRecord).catch((err) => {
       console.error(err);
     });
 
     await updateUserTrackers(userId, {
-      $inc: { ['trackers.rewarded.' + rewardTypes.cfgRef.type] : rewardTypes.cfgRef.singleActionReward}
-    }).catch((err)=> {
+      $inc: {['trackers.rewarded.' + cfgRef.type]: cfgRef.singleActionReward}
+    }).catch((err) => {
       console.error(err);
     });
 
     //add proper amount of tokens to the user
-    await mintUser(userId, rewardRecord.payload.amountAwarded).catch((err)=> {
+    await mintUser(userId, rewardRecord.amountAwarded).catch((err) => {
       console.error(err);
     })
-
-    //save event and emit on default channel, just keep the default event structure, so we could save them easily
-    const eventStructure = {
-      event: notificationEvents.EVENT_USER_REWARDED,
-      data: {
-        producerId: rewardRecord.userId,
-        producer: 'system',
-        data: rewardRecord
-      }
-    };
-
-    //we dont need to save any helper events, because we are be able to fill the conditions without extra events checks
-    // saveEvent(eventStructure.event, eventStructure.data);
-    //@todo emit websocket message just for specific user channel, we need to add kind of listener in frontend
-    publishToBroadcast(eventStructure);
   }
 };
 
@@ -310,12 +250,10 @@ const eg_playedAGame = async (params) => {
 
   const rewardRecord = {
     userId: null,
-    payload: {
-      rewardType: cfgRef.type,
-      amountAwarded: null,
-      totalTimes: 200, //just one game for now, it could be static
-      gameName: null
-    },
+    rewardType: cfgRef.type,
+    amountAwarded: null,
+    totalTimes: 200, //just one game for now, it could be static
+    gameName: null,
     category: cfgRef.category
   }
 
@@ -325,60 +263,45 @@ const eg_playedAGame = async (params) => {
   const gameName = _.get(data, 'data.gameName');
   _.set(rewardRecord, 'userId', userId);
 
-  const rewardTracker = _.get(userRecord, `trackers.rewarded.${rewardRecord.payload.rewardType}.${gameName}`, 0);
+  const rewardTracker = _.get(userRecord, `trackers.rewarded.${rewardRecord.rewardType}.${gameName}`, 0);
 
   const isAlreadyExist = await getUserRewards({
     userId,
-    'payload.rewardType': cfgRef.type,
-    'payload.gameName': gameName
-  }).catch((err)=> {
+    'data.rewardType': cfgRef.type,
+    'data.gameName': gameName
+  }).catch((err) => {
     console.error(err);
   });
 
   //increment progress and check condition
   const updatedUserRecord = await updateUserTrackers(userId, {
-    $inc: { ['trackers.progress.' + cfgRef.type] : 1}
-  }).catch((err)=> {
+    $inc: {['trackers.progress.' + cfgRef.type]: 1}
+  }).catch((err) => {
     console.error(err);
   });
 
-  const checkGameProgress = _.get(updatedUserRecord, `trackers.progress.${rewardRecord.payload.rewardType}.${gameName}`, 0);
+  const checkGameProgress = _.get(updatedUserRecord, `trackers.progress.${rewardRecord.rewardType}.${gameName}`, 0);
 
   //Only once is allowed
-  if(isAlreadyExist.length === 0 && checkGameProgress >= 200 && rewardTracker >= cfgRef.maxReward) {
-    _.set(rewardRecord, 'payload.amountAwarded', cfgRef.games[gameName].singleActionReward);
-    _.set(rewardRecord, 'payload.gameName', gameName);
-    _.set(rewardRecord, 'payload.totalTimes', checkGameProgress);
+  if (isAlreadyExist.length === 0 && checkGameProgress >= 200 && rewardTracker >= cfgRef.maxReward) {
+    _.set(rewardRecord, 'amountAwarded', cfgRef.games[gameName].singleActionReward);
+    _.set(rewardRecord, 'gameName', gameName);
+    _.set(rewardRecord, 'totalTimes', checkGameProgress);
 
-    await createReward(rewardRecord).catch((err)=> {
+    await createReward(rewardRecord).catch((err) => {
       console.error(err);
     });
 
     await updateUserTrackers(userId, {
-      $inc: { ['trackers.rewarded.' + cfgRef.type] : cfgRef.singleActionReward}
-    }).catch((err)=> {
+      $inc: {['trackers.rewarded.' + cfgRef.type]: cfgRef.singleActionReward}
+    }).catch((err) => {
       console.error(err);
     });
 
     //add proper amount of tokens to the user
-    await mintUser(userId, rewardRecord.payload.amountAwarded).catch((err)=> {
+    await mintUser(userId, rewardRecord.amountAwarded).catch((err) => {
       console.error(err);
     })
-
-    //save event and emit on default channel, just keep the default event structure, so we could save them easily, if we want
-    const eventStructure = {
-      event: notificationEvents.EVENT_USER_REWARDED,
-      data: {
-        producerId: rewardRecord.userId,
-        producer: 'system',
-        data: rewardRecord
-      }
-    };
-
-    //we dont need to save any helper events, because we are be able to fill the conditions without extra events checks
-    // saveEvent(eventStructure.event, eventStructure.data);
-    //@todo emit websocket message just for specific user channel, we need to add kind of listener in frontend
-    publishToBroadcast(eventStructure);
   }
 };
 
@@ -392,11 +315,9 @@ const eg_playedAGameDaysInRow = async (params) => {
 
   const rewardRecord = {
     userId: null,
-    payload: {
-      rewardType: cfgRef.type,
-      amountAwarded: null,
-      days: null //days in row
-    },
+    rewardType: cfgRef.type,
+    amountAwarded: null,
+    days: null, //days in row
     category: cfgRef.category
   }
 
@@ -406,12 +327,12 @@ const eg_playedAGameDaysInRow = async (params) => {
   const gameName = _.get(data, 'data.gameName');
   _.set(rewardRecord, 'userId', userId);
 
-  const rewardTracker = _.get(userRecord, `trackers.rewarded.${rewardRecord.payload.rewardType}`, 0);
+  const rewardTracker = _.get(userRecord, `trackers.rewarded.${rewardRecord.rewardType}`, 0);
 
   const isAlreadyExist = await getUserRewards({
     userId,
-    'payload.rewardType': cfgRef.type
-  }).catch((err)=> {
+    'data.rewardType': cfgRef.type
+  }).catch((err) => {
     console.error(err);
   });
 
@@ -421,8 +342,8 @@ const eg_playedAGameDaysInRow = async (params) => {
   const daysInRow = await getUniversalEvents({
     userId,
     'type': params.event,
-    createdAt: { '$gte': findXDaysDate }
-  }).catch((err)=> {
+    createdAt: {'$gte': findXDaysDate}
+  }).catch((err) => {
     console.error(err);
   });
 
@@ -431,39 +352,24 @@ const eg_playedAGameDaysInRow = async (params) => {
   });
 
   //Only once is allowed
-  if(isAlreadyExist.length === 0 && rewardTracker >= cfgRef.maxReward && groupByDateCounter.length === cfgRef.daysInRow) {
-    _.set(rewardRecord, 'payload.amountAwarded', cfgRef.games[gameName].singleActionReward);
-    _.set(rewardRecord, 'payload.days', cfgRef.daysInRow);
+  if (isAlreadyExist.length === 0 && rewardTracker >= cfgRef.maxReward && groupByDateCounter.length === cfgRef.daysInRow) {
+    _.set(rewardRecord, 'amountAwarded', cfgRef.games[gameName].singleActionReward);
+    _.set(rewardRecord, 'days', cfgRef.daysInRow);
 
-    await createReward(rewardRecord).catch((err)=> {
+    await createReward(rewardRecord).catch((err) => {
       console.error(err);
     });
 
     await updateUserTrackers(userId, {
-      $inc: { ['trackers.rewarded.' + cfgRef.type] : cfgRef.singleActionReward}
-    }).catch((err)=> {
+      $inc: {['trackers.rewarded.' + cfgRef.type]: cfgRef.singleActionReward}
+    }).catch((err) => {
       console.error(err);
     });
 
     //add proper amount of tokens to the user
-    await mintUser(userId, rewardRecord.payload.amountAwarded).catch((err)=> {
+    await mintUser(userId, rewardRecord.amountAwarded).catch((err) => {
       console.error(err);
     })
-
-    //save event and emit on default channel, just keep the default event structure, so we could save them easily, if we want
-    const eventStructure = {
-      event: notificationEvents.EVENT_USER_REWARDED,
-      data: {
-        producerId: rewardRecord.userId,
-        producer: 'system',
-        data: rewardRecord
-      }
-    };
-
-    //we dont need to save any helper events, because we are be able to fill the conditions without extra events checks
-    // saveEvent(eventStructure.event, eventStructure.data);
-    //@todo emit websocket message just for specific user channel, we need to add kind of listener in frontend
-    publishToBroadcast(eventStructure);
   }
 };
 
@@ -477,11 +383,9 @@ const eg_userLongTimeActive = async (params) => {
 
   const rewardRecord = {
     userId: null,
-    payload: {
-      rewardType: cfgRef.type,
-      amountAwarded: null,
-      activityHours: null //activity hours per user
-    },
+    rewardType: cfgRef.type,
+    amountAwarded: null,
+    activityHours: null, //activity hours per user
     category: cfgRef.category
   }
   const {data, event, userId, userRecord} = params;
@@ -490,49 +394,34 @@ const eg_userLongTimeActive = async (params) => {
   const activityHours = _.get(data, 'data.activityHours');
   _.set(rewardRecord, 'userId', userId);
 
-  const rewardTracker = _.get(userRecord, `trackers.rewarded.${rewardRecord.payload.rewardType}`, 0);
+  const rewardTracker = _.get(userRecord, `trackers.rewarded.${rewardRecord.rewardType}`, 0);
 
   const isAlreadyExist = await getUserRewards({
     userId,
-    'payload.rewardType': cfgRef.type
-  }).catch((err)=> {
+    'data.rewardType': cfgRef.type
+  }).catch((err) => {
     console.error(err);
   });
 
   //Only once is allowed
-  if(isAlreadyExist.length === 0 && rewardTracker >= cfgRef.maxReward && parseInt(activityHours, 10) >= cfgRef.timeInHours) {
-    _.set(rewardRecord, 'payload.amountAwarded', cfgRef.singleActionReward);
-    _.set(rewardRecord, 'payload.activityHours', cfgRef.timeInHours);
+  if (isAlreadyExist.length === 0 && rewardTracker >= cfgRef.maxReward && parseInt(activityHours, 10) >= cfgRef.timeInHours) {
+    _.set(rewardRecord, 'amountAwarded', cfgRef.singleActionReward);
+    _.set(rewardRecord, 'activityHours', cfgRef.timeInHours);
 
-    await createReward(rewardRecord).catch((err)=> {
+    await createReward(rewardRecord).catch((err) => {
       console.error(err);
     });
 
     await updateUserTrackers(userId, {
-      $inc: { ['trackers.rewarded.' + cfgRef.type] : cfgRef.singleActionReward}
-    }).catch((err)=> {
+      $inc: {['trackers.rewarded.' + cfgRef.type]: cfgRef.singleActionReward}
+    }).catch((err) => {
       console.error(err);
     });
 
     //add proper amount of tokens to the user
-    await mintUser(userId, rewardRecord.payload.amountAwarded).catch((err)=> {
+    await mintUser(userId, rewardRecord.amountAwarded).catch((err) => {
       console.error(err);
     })
-
-    //save event and emit on default channel, just keep the default event structure, so we could save them easily, if we want
-    const eventStructure = {
-      event: notificationEvents.EVENT_USER_REWARDED,
-      data: {
-        producerId: rewardRecord.userId,
-        producer: 'system',
-        data: rewardRecord
-      }
-    };
-
-    //we dont need to save any helper events, because we are be able to fill the conditions without extra events checks
-    // saveEvent(eventStructure.event, eventStructure.data);
-    //@todo emit websocket message just for specific user channel, we need to add kind of listener in frontend
-    publishToBroadcast(eventStructure);
   }
 };
 
@@ -546,10 +435,8 @@ const eg_userBirthdateGiven = async (params) => {
 
   const rewardRecord = {
     userId: null,
-    payload: {
-      rewardType: cfgRef.type,
-      amountAwarded: null
-    },
+    rewardType: cfgRef.type,
+    amountAwarded: null,
     category: cfgRef.category
   }
   const {data, event, userId, userRecord} = params;
@@ -557,48 +444,33 @@ const eg_userBirthdateGiven = async (params) => {
   //get event game name
   _.set(rewardRecord, 'userId', userId);
 
-  const rewardTracker = _.get(userRecord, `trackers.rewarded.${rewardRecord.payload.rewardType}`, 0);
+  const rewardTracker = _.get(userRecord, `trackers.rewarded.${rewardRecord.rewardType}`, 0);
 
   const isAlreadyExist = await getUserRewards({
     userId,
-    'payload.rewardType': cfgRef.type
-  }).catch((err)=> {
+    'data.rewardType': cfgRef.type
+  }).catch((err) => {
     console.error(err);
   });
 
   //Only once is allowed
-  if(isAlreadyExist.length === 0 && rewardTracker >= cfgRef.maxReward) {
-    _.set(rewardRecord, 'payload.amountAwarded', cfgRef.singleActionReward);
+  if (isAlreadyExist.length === 0 && rewardTracker >= cfgRef.maxReward) {
+    _.set(rewardRecord, 'amountAwarded', cfgRef.singleActionReward);
 
-    await createReward(rewardRecord).catch((err)=> {
+    await createReward(rewardRecord).catch((err) => {
       console.error(err);
     });
 
     await updateUserTrackers(userId, {
-      $inc: { ['trackers.rewarded.' + cfgRef.type] : cfgRef.singleActionReward}
-    }).catch((err)=> {
+      $inc: {['trackers.rewarded.' + cfgRef.type]: cfgRef.singleActionReward}
+    }).catch((err) => {
       console.error(err);
     });
 
     //add proper amount of tokens to the user
-    await mintUser(userId, rewardRecord.payload.amountAwarded).catch((err)=> {
+    await mintUser(userId, rewardRecord.amountAwarded).catch((err) => {
       console.error(err);
     })
-
-    //save event and emit on default channel, just keep the default event structure, so we could save them easily, if we want
-    const eventStructure = {
-      event: notificationEvents.EVENT_USER_REWARDED,
-      data: {
-        producerId: rewardRecord.userId,
-        producer: 'system',
-        data: rewardRecord
-      }
-    };
-
-    //we dont need to save any helper events, because we are be able to fill the conditions without extra events checks
-    // saveEvent(eventStructure.event, eventStructure.data);
-    //@todo emit websocket message just for specific user channel, we need to add kind of listener in frontend
-    publishToBroadcast(eventStructure);
   }
 };
 
@@ -612,11 +484,9 @@ const eg_checkedInManyChats = async (params) => {
 
   const rewardRecord = {
     userId: null,
-    payload: {
-      rewardType: cfgRef.type,
-      amountAwarded: null,
-      totalChats: null // total different chats count
-    },
+    rewardType: cfgRef.type,
+    amountAwarded: null,
+    totalChats: null, // total different chats count
     category: cfgRef.category
   }
 
@@ -626,49 +496,34 @@ const eg_checkedInManyChats = async (params) => {
   const totalChatsCount = _.get(data, 'data.totalChatsCount');
   _.set(rewardRecord, 'userId', userId);
 
-  const rewardTracker = _.get(userRecord, `trackers.rewarded.${rewardRecord.payload.rewardType}`, 0);
+  const rewardTracker = _.get(userRecord, `trackers.rewarded.${rewardRecord.rewardType}`, 0);
 
   const isAlreadyExist = await getUserRewards({
     userId,
-    'payload.rewardType': rewardTypes.ON_CHECKED_IN_MANY_CHATS.type
-  }).catch((err)=> {
+    'data.rewardType': rewardTypes.ON_CHECKED_IN_MANY_CHATS.type
+  }).catch((err) => {
     console.error(err);
   });
 
   //Only once is allowed
-  if(isAlreadyExist.length === 0 && rewardTracker >= cfgRef.maxReward && parseInt(totalChatsCount, 10) >= cfgRef.totalChats) {
-    _.set(rewardRecord, 'payload.amountAwarded', cfgRef.singleActionReward);
-    _.set(rewardRecord, 'payload.totalChats', cfgRef.totalChats);
+  if (isAlreadyExist.length === 0 && rewardTracker >= cfgRef.maxReward && parseInt(totalChatsCount, 10) >= cfgRef.totalChats) {
+    _.set(rewardRecord, 'amountAwarded', cfgRef.singleActionReward);
+    _.set(rewardRecord, 'totalChats', cfgRef.totalChats);
 
-    await createReward(rewardRecord).catch((err)=> {
+    await createReward(rewardRecord).catch((err) => {
       console.error(err);
     });
 
     await updateUserTrackers(userId, {
-      $inc: { ['trackers.rewarded.' + cfgRef.type] : cfgRef.singleActionReward}
-    }).catch((err)=> {
+      $inc: {['trackers.rewarded.' + cfgRef.type]: cfgRef.singleActionReward}
+    }).catch((err) => {
       console.error(err);
     });
 
     //add proper amount of tokens to the user
-    await mintUser(userId, rewardRecord.payload.amountAwarded).catch((err)=> {
+    await mintUser(userId, rewardRecord.amountAwarded).catch((err) => {
       console.error(err);
     })
-
-    //save event and emit on default channel, just keep the default event structure, so we could save them easily, if we want
-    const eventStructure = {
-      event: notificationEvents.EVENT_USER_REWARDED,
-      data: {
-        producerId: rewardRecord.userId,
-        producer: 'system',
-        data: rewardRecord
-      }
-    };
-
-    //we dont need to save any helper events, because we are be able to fill the conditions without extra events checks
-    // saveEvent(eventStructure.event, eventStructure.data);
-    //@todo emit websocket message just for specific user channel, we need to add kind of listener in frontend
-    publishToBroadcast(eventStructure);
   }
 };
 
@@ -683,12 +538,10 @@ const eg_bettedInSickSocietyCat = async (params) => {
 
   const rewardRecord = {
     userId: null,
-    payload: {
-      rewardType: cfgRef.type,
-      amountAwarded: cfgRef.singleActionReward,
-      betCategory: cfgRef.betCategory,
-      totalBets: cfgRef.totalBets
-    },
+    rewardType: cfgRef.type,
+    amountAwarded: cfgRef.singleActionReward,
+    betCategory: cfgRef.betCategory,
+    totalBets: cfgRef.totalBets,
     category: cfgRef.category
   }
 
@@ -698,13 +551,16 @@ const eg_bettedInSickSocietyCat = async (params) => {
 
   //get new event category, check only when category match our sick category
   const currentBetCat = _.get(data, 'data.event.category');
-  const rewardTracker = _.get(userRecord, `trackers.rewarded.${rewardRecord.payload.rewardType}`, 0);
+  const rewardTracker = _.get(userRecord, `trackers.rewarded.${rewardRecord.rewardType}`, 0);
 
-  const isAlreadyExist = await getUserRewards({userId, 'payload.rewardType': cfgRef.type}).catch((err)=> {
+  const isAlreadyExist = await getUserRewards({
+    userId,
+    'data.rewardType': cfgRef.type
+  }).catch((err) => {
     console.error(err);
   });
 
-  if(currentBetCat !== cfgRef.betCategory) {
+  if (currentBetCat !== cfgRef.betCategory) {
     return;
   }
 
@@ -712,40 +568,25 @@ const eg_bettedInSickSocietyCat = async (params) => {
     userId,
     'type': "Notification/EVENT_BET_PLACED",
     'data.event.category': cfgRef.betCategory
-  }, ['_id']).catch((err)=> {
+  }, ['_id']).catch((err) => {
     console.error(err);
   });
 
-  if(isAlreadyExist.length === 0 && totalBetsInCategory.length >= cfgRef.totalBets && rewardTracker < rewardTypes.ON_DAILY_LOGIN.maxReward) {
-    await createReward(rewardRecord).catch((err)=> {
+  if (isAlreadyExist.length === 0 && totalBetsInCategory.length >= cfgRef.totalBets && rewardTracker < rewardTypes.ON_DAILY_LOGIN.maxReward) {
+    await createReward(rewardRecord).catch((err) => {
       console.error(err);
     });
 
     await updateUserTrackers(userId, {
-      $inc: { ['trackers.rewarded.' + cfgRef.type] : cfgRef.singleActionReward}
-    }).catch((err)=> {
+      $inc: {['trackers.rewarded.' + cfgRef.type]: cfgRef.singleActionReward}
+    }).catch((err) => {
       console.error(err);
     });
 
     //add proper amount of tokens to the user
-    await mintUser(userId, rewardRecord.payload.amountAwarded).catch((err)=> {
+    await mintUser(userId, rewardRecord.amountAwarded).catch((err) => {
       console.error(err);
     })
-
-    //save event and emit on default channel, just keep the default event structure, so we could save them easily
-    const eventStructure = {
-      event: notificationEvents.EVENT_USER_REWARDED,
-      data: {
-        producerId: rewardRecord.userId,
-        producer: 'system',
-        data: rewardRecord
-      }
-    };
-
-    //we dont need to save any helper events, because we are be able to fill the conditions without extra events checks
-    // saveEvent(eventStructure.event, eventStructure.data);
-    //@todo emit websocket message just for specific user channel, we need to add kind of listener in frontend
-    publishToBroadcast(eventStructure);
   }
 };
 
@@ -790,7 +631,7 @@ const checkDirectEvents = async ({event, data}) => {
 
   const userId = _.get(data, 'producerId').toString();
 
-  const userRecord = await getUserData(userId).catch((err)=> {
+  const userRecord = await getUserData(userId).catch((err) => {
     console.error(err);
   });
 

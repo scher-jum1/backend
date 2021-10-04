@@ -63,5 +63,6 @@ module.exports = {
   notificationEvents,
   publishOnDefaultChannel,
   publishToBroadcast,
-  saveEvent
+  saveEvent,
+  DEFAULT_CHANNEL
 };
