@@ -1,5 +1,5 @@
 const cron = require('node-cron');
-// const test = require('../controllers/reward-system');
+const {getUsersLeaderboard} = require('../controllers/reward-system');
 
 //wait for timeout promise fn
 const wait = (ms) => {
@@ -34,12 +34,12 @@ const initCrons = ()=> {
     console.log('-----------------------------');
     console.log('Cron running every 10 second');
 
-    // const leaderboard = await getUsersLeaderboard().catch((err)=> {
-    //   console.log("[REWARD SYSTEM] cron error", err);
-    // });
-    //
-    // console.log("leaderboard", leaderboard);
+    const leaderboard = await getUsersLeaderboard().catch((err)=> {
+      console.log("[REWARD SYSTEM] cron error", err);
+    });
+
+    console.log("leaderboard", leaderboard);
   });
 }
 
-exports.initCrons = initCrons;
+module.exports.initCrons = initCrons;
