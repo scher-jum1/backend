@@ -50,9 +50,9 @@ async function main() {
   const { initTwitchSubscribeJob } = require('./jobs/twitch-subscribe-job');
   initTwitchSubscribeJob();
 
-  //init cron jobs
-  const {initCrons} = require('./jobs/cron');
-  initCrons();
+  //init cron jobs, temporarily not needed, because we will do leaderboards manually
+  // const {initCrons} = require('./jobs/cron');
+  // initCrons();
 
   // Import Socket.io service
   const websocketService = require('./services/websocket-service');
@@ -102,6 +102,9 @@ async function main() {
   subClient.on('message', (channel, message) => {
     //console.log(`[REDIS] Incoming : ${message}`);
     const messageObj = JSON.parse(message);
+
+
+    console.log('messageObj', messageObj);
 
     // intercept certain messages
     // TODO how will this scale?
@@ -201,9 +204,9 @@ async function main() {
 
     socket.on('leaveRoom', (data) => websocketService.handleLeaveRoom(socket, data, userId));
 
-    socket.on('emitAction', (data) => {
-      if (userId) websocketService.handleEmitAction(socket, data, userId)
-    });
+    // socket.on('emitAction', (data) => {
+    //   if (userId) websocketService.handleEmitAction(socket, data, userId)
+    // });
   });
 
   // Let server run and listen

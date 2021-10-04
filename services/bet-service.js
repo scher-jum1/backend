@@ -7,7 +7,7 @@ const { publishEvent, notificationEvents } = require('./notification-service');
 const { BetContract, Erc20 } = require('@wallfair.io/smart_contract_mock');
 const { toPrettyBigDecimal, toCleanBigDecimal } = require('../util/number-helper');
 const { calculateAllBetsStatus, filterPublishedBets } = require('../services/event-service');
-const {checkDirectEvents} = require("../controllers/reward-system");
+const {checkDirectEvents} = require("../controllers/rewards-system-controller");
 
 const WFAIR = new Erc20('WFAIR');
 

@@ -7,7 +7,7 @@ const userService = require('../services/user-service');
 const { generate } = require('../helper');
 const bcrypt = require('bcryptjs');
 const { publishEvent, notificationEvents } = require('../services/notification-service');
-const {checkDirectEvents} = require("../controllers/reward-system");
+const {checkDirectEvents} = require("../controllers/rewards-system-controller");
 
 
 module.exports = {

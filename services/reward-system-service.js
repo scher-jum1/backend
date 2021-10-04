@@ -3,10 +3,6 @@ const pick = require('lodash.pick');
 const bcrypt = require('bcrypt');
 const axios = require('axios');
 const {publishEvent} = require('./notification-service');
-const {flatThis} = require('../controllers/reward-system/helpers')
-
-
-console.log("User", User);
 
 exports.createReward = async (data, options = {}) => {
   return Reward.create(data);

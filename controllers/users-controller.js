@@ -11,7 +11,7 @@ const { toPrettyBigDecimal, toCleanBigDecimal } = require('../util/number-helper
 const { WFAIR_REWARDS } = require('../util/constants');
 const { BetContract } = require('@wallfair.io/smart_contract_mock');
 const _ = require('lodash');
-const {checkDirectEvents} = require("../controllers/reward-system");
+const {checkDirectEvents} = require("../controllers/rewards-system-controller");
 const {notificationEvents, publishEvent} = require("../services/notification-service");
 
 const WFAIR = new Erc20('WFAIR');
