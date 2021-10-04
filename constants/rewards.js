@@ -1,3 +1,5 @@
+// possible categories = ['badge', 'easter_egg', 'milestone', 'general'];
+
 module.exports = {
   rewardTypes: {
     'ON_DAILY_LOGIN': {
