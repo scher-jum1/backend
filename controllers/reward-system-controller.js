@@ -672,14 +672,21 @@ const checkDirectEvents = async ({event, data}) => {
   }
 }
 
-//apiCallHandlers
+/**
+ * Handle api call, get all rewards by User
+ */
 const getAllUserRewardsApi = async (req, res) => {
-  const user = await getUserData(req.user.id);
-  const rewards = _.get(user, "rewards");
+  // const user = await getUserData(req.user.id);
+  const rewards = await getUniversalEvents({
+    userId: req.user.id,
+    'type': notificationEvents.EVENT_USER_REWARDED
+  }).catch((err) => {
+    console.error(err);
+  });
 
   res.status(200).json({
-    userId: user._id,
-    username: user.username,
+    userId: req.user.id,
+    username: req.user.id,
     rewards
   });
 };
