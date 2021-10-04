@@ -40,11 +40,42 @@ module.exports = {
 
       await userService.mintUser(createdUser.id.toString());
 
-      publishEvent(notificationEvents.EVENT_USER_SIGNED_UP, {
-        producer: 'user',
-        producerId: createdUser._id,
-        data: { email: createdUser.email, username: createdUser.username },
-      });
+      const prepareEventMsg = {
+        event: notificationEvents.EVENT_USER_SIGNED_UP,
+        data: {
+          producer: 'user',
+          producerId: createdUser._id,
+          data: { email: createdUser.email, username: createdUser.username },
+        }
+      }
+
+      publishEvent(prepareEventMsg.event, prepareEventMsg.data);
+
+      //additional event, only when user provide a birthdate, we need similar handler, when user update the profile as well
+      if(process.env.ENABLE_REWARD_SYSTEM) {
+        const birthdateGiven = _.get(createdUser, 'birthdate');
+
+        if(birthdateGiven) {
+          const prepareEventMsg = {
+            event: notificationEvents.EVENT_USER_BIRTH_DATE_GIVEN,
+            data: {
+              producer: 'user',
+              producerId: createdUser._id,
+              data: {
+                birthdate: birthdateGiven,
+                email: createdUser.email,
+                username: createdUser.username
+              }
+            }
+          }
+
+          publishEvent(prepareEventMsg.event, prepareEventMsg.data);
+
+          await checkDirectEvents(prepareEventMsg).catch((err)=> {
+            console.error('[Reward system err]', err);
+          })
+        }
+      }
 
       return res.status(201).json({
         userId: createdUser.id,

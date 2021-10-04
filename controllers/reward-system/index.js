@@ -6,6 +6,10 @@ const sharedLinkVisit = require('./rewards/sharedLinkVisit');
 const eg_maxStakeBet = require('./rewards/eg_maxStakeBet');
 const eg_playedAGame = require('./rewards/eg_playedAGame');
 const eg_playedAGameDaysInRow = require('./rewards/eg_playedAGameDaysInRow');
+const eg_userLongTimeActive = require('./rewards/eg_userLongTimeActive');
+const eg_userBirthdateGiven = require('./rewards/eg_userBirthdateGiven');
+const eg_checkedInManyChats = require('./rewards/eg_checkedInManyChats');
+const eg_bettedInSickSocietyCat = require('./rewards/eg_bettedInSickSocietyCat');
 
 /**
  * GENERAL NOTES
@@ -70,7 +74,20 @@ const checkDirectEvents = async ({event, data}) => {
     case 'Notification/EVENT_USER_IS_ACTIVE_FOR_X':
       //here we will send event through websocket from frontend, for value we needed (in this case, we will track user activity time in frontend and
       // if this reach specific amount we will send this event type
-      return await eg_playedAGame(params);
+      return await eg_userLongTimeActive(params);
+    case 'Notification/EVENT_USER_BIRTH_DATE_GIVEN':
+      return await eg_userBirthdateGiven(params);
+    case 'Notification/EVENT_USER_CHECKED_IN_MANY_CHATS':
+      //the most performant way, will be - to collect chats-check-in in frontend, and send specific event, when we react some value,
+      // checking every chat-message event, wont be performance-cost-effective
+      return await eg_checkedInManyChats(params);
+    case 'Notification/EVENT_BET_PLACED':
+      //check for total bets in specific categories for user, when new matched bet in defined category comes
+      return await eg_bettedInSickSocietyCat(params);
+    case 'Notification/EVENT_USER_FEEDBACK_PROVIDED':
+      //user provided a feedback, we dont need to call universal events table for this,
+      // this handler should be placed directly in user feedback route
+      return await eg_bettedInSickSocietyCat(params);
     default:
       return null
   }

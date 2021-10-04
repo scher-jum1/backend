@@ -69,6 +69,33 @@ module.exports = {
       maxReward: 200,
       timeInHours: 4,
       category: 'easter_egg'
+    },
+    'ON_BIRTHDATE_GIVEN': {
+      type: 'ON_BIRTHDATE_GIVEN',
+      singleActionReward: 200,
+      maxReward: 200,
+      category: 'easter_egg'
+    },
+    'ON_CHECKED_IN_MANY_CHATS': {
+      type: 'ON_CHECKED_IN_MANY_CHATS',
+      singleActionReward: 300,
+      maxReward: 300,
+      totalChats: 20,
+      category: 'easter_egg'
+    },
+    'ON_BETTED_IN_SICK_SOCIETY_CAT': {
+      type: 'ON_BETTED_IN_SICK_SOCIETY_CAT',
+      singleActionReward: 300,
+      maxReward: 300,
+      totalBets: 10,
+      betCategory: 'Sick Society',
+      category: 'easter_egg'
+    },
+    'ON_FEEDBACK_PROVIDED': {
+      type: 'ON_FEEDBACK_PROVIDED',
+      singleActionReward: 500,
+      maxReward: 500,
+      category: 'easter_egg'
     }
   }
 

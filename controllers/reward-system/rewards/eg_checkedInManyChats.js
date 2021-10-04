@@ -15,19 +15,21 @@ const {
 } = require('../../../services/notification-service');
 const {mintUser} = require('../../../services/user-service')
 
+const cfgRef = rewardTypes.ON_CHECKED_IN_MANY_CHATS;
+
 const rewardRecord = {
   userId: null,
   payload: {
-    rewardType: rewardTypes.ON_GAME_PLAYED_X_DAYS_IN_ROW.type,
+    rewardType: cfgRef.type,
     amountAwarded: null,
-    days: null //days in row
+    totalChats: null // total different chats count
   },
-  category: rewardTypes.ON_GAME_PLAYED_X_DAYS_IN_ROW.category
+  category: cfgRef.category
 }
 
-/** Someone has played in x game x times x days in a row
+/** User wrote message in >= 20 chats
  * Conditions:
- * - played at least once x days in a row
+ * - user wrote at least 1 message in 20 different chats (events)
  * - max total amount defined
  * */
 
@@ -35,44 +37,29 @@ const handle = async (params) => {
   const {data, event, userId, userRecord} = params;
 
   //get event game name
-  const gameName = _.get(data, 'data.gameName');
+  const totalChatsCount = _.get(data, 'data.totalChatsCount');
   _.set(rewardRecord, 'userId', userId);
 
   const rewardTracker = _.get(userRecord, `trackers.rewarded.${rewardRecord.payload.rewardType}`, 0);
 
   const isAlreadyExist = await getUserRewards({
     userId,
-    'payload.rewardType': rewardTypes.ON_GAME_PLAYED_X_DAYS_IN_ROW.type
+    'payload.rewardType': rewardTypes.ON_CHECKED_IN_MANY_CHATS.type
   }).catch((err)=> {
     console.error(err);
-  });
-
-  //check days in row
-  const findXDaysDate = new Date();
-  findXDaysDate.setDate(findXDaysDate.getDate() - rewardTypes.ON_GAME_PLAYED_X_DAYS_IN_ROW.daysInRow);
-  const daysInRow = await getUniversalEvents({
-    userId,
-    'type': params.event,
-    createdAt: { '$gte': findXDaysDate }
-  }).catch((err)=> {
-    console.error(err);
-  });
-
-  const groupByDateCounter = _.groupBy(daysInRow, x => {
-    return getDayOfYear(x.createdAt);
   });
 
   //Only once is allowed
-  if(isAlreadyExist.length === 0 && rewardTracker >= rewardTypes.ON_GAME_PLAYED_X_DAYS_IN_ROW.maxReward && groupByDateCounter.length === rewardTypes.ON_GAME_PLAYED_X_DAYS_IN_ROW.daysInRow) {
-    _.set(rewardRecord, 'payload.amountAwarded', rewardTypes.ON_GAME_PLAYED_X_DAYS_IN_ROW.games[gameName].singleActionReward);
-    _.set(rewardRecord, 'payload.days', rewardTypes.ON_GAME_PLAYED_X_DAYS_IN_ROW.daysInRow);
+  if(isAlreadyExist.length === 0 && rewardTracker >= cfgRef.maxReward && parseInt(totalChatsCount, 10) >= cfgRef.totalChats) {
+    _.set(rewardRecord, 'payload.amountAwarded', cfgRef.singleActionReward);
+    _.set(rewardRecord, 'payload.totalChats', cfgRef.totalChats);
 
     await createReward(rewardRecord).catch((err)=> {
       console.error(err);
     });
 
     await updateUserTrackers(userId, {
-      $inc: { ['trackers.rewarded.' + rewardTypes.ON_GAME_PLAYED_X_DAYS_IN_ROW.type] : rewardTypes.ON_GAME_PLAYED_X_DAYS_IN_ROW.singleActionReward}
+      $inc: { ['trackers.rewarded.' + cfgRef.type] : cfgRef.singleActionReward}
     }).catch((err)=> {
       console.error(err);
     });

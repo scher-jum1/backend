@@ -7,6 +7,7 @@ const { publishEvent, notificationEvents } = require('./notification-service');
 const { BetContract, Erc20 } = require('@wallfair.io/smart_contract_mock');
 const { toPrettyBigDecimal, toCleanBigDecimal } = require('../util/number-helper');
 const { calculateAllBetsStatus, filterPublishedBets } = require('../services/event-service');
+const {checkDirectEvents} = require("../controllers/reward-system");
 
 const WFAIR = new Erc20('WFAIR');
 
@@ -134,12 +135,24 @@ exports.placeBet = async (userId, betId, amount, outcome, minOutcomeTokens) => {
 
     await eventService.placeBet(user, bet, toPrettyBigDecimal(amount), outcome);
 
-    publishEvent(notificationEvents.EVENT_BET_PLACED, {
-      producer: 'user',
-      producerId: userId,
-      data: { bet, trade: response.trade, user, event },
-      broadcast: true
-    });
+    const eventStructure = {
+      event: notificationEvents.EVENT_BET_PLACED,
+      data: {
+        producer: 'user',
+        producerId: userId,
+        data: { bet, trade: response.trade, user, event },
+        broadcast: true
+      }
+    };
+
+    publishEvent(eventStructure.event, eventStructure.data);
+
+    if(process.env.ENABLE_REWARD_SYSTEM) {
+      checkDirectEvents(eventStructure).catch((err)=> {
+        console.error('[Reward system err]', err);
+      })
+    }
+
     return response;
   } catch (err) {
     console.error(LOG_TAG, err);

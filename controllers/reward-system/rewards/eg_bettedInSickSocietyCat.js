@@ -1,12 +1,10 @@
 const _ = require('lodash');
 const rewardTypes = require('../constans').rewardTypes;
 const {prepareTimeRange} = require('../helpers')
-const {getDayOfYear} = require('date-fns')
 const {
   getUserRewards,
   createReward,
-  updateUserTrackers,
-  getUniversalEvents
+  updateUserTrackers, getUniversalEvents
 } = require('../../../services/reward-system-service')
 const {
   saveEvent,
@@ -15,64 +13,58 @@ const {
 } = require('../../../services/notification-service');
 const {mintUser} = require('../../../services/user-service')
 
+const cfgRef = rewardTypes.ON_BETTED_IN_SICK_SOCIETY_CAT;
+
 const rewardRecord = {
   userId: null,
   payload: {
-    rewardType: rewardTypes.ON_GAME_PLAYED_X_DAYS_IN_ROW.type,
-    amountAwarded: null,
-    days: null //days in row
+    rewardType: cfgRef.type,
+    amountAwarded: cfgRef.singleActionReward,
+    betCategory: cfgRef.betCategory,
+    totalBets: cfgRef.totalBets
   },
-  category: rewardTypes.ON_GAME_PLAYED_X_DAYS_IN_ROW.category
+  category: cfgRef.category
 }
 
-/** Someone has played in x game x times x days in a row
+/** User betted 10 times in specific category (Sick society)
  * Conditions:
- * - played at least once x days in a row
+ * - total bets for user for specific category == cfgRef.totalBets
  * - max total amount defined
+ * - only once per lifetime
  * */
 
 const handle = async (params) => {
   const {data, event, userId, userRecord} = params;
 
-  //get event game name
-  const gameName = _.get(data, 'data.gameName');
   _.set(rewardRecord, 'userId', userId);
 
+  //get new event category, check only when category match our sick category
+  const currentBetCat = _.get(data, 'data.event.category');
   const rewardTracker = _.get(userRecord, `trackers.rewarded.${rewardRecord.payload.rewardType}`, 0);
 
-  const isAlreadyExist = await getUserRewards({
-    userId,
-    'payload.rewardType': rewardTypes.ON_GAME_PLAYED_X_DAYS_IN_ROW.type
-  }).catch((err)=> {
+  const isAlreadyExist = await getUserRewards({userId, 'payload.rewardType': cfgRef.type}).catch((err)=> {
     console.error(err);
   });
 
-  //check days in row
-  const findXDaysDate = new Date();
-  findXDaysDate.setDate(findXDaysDate.getDate() - rewardTypes.ON_GAME_PLAYED_X_DAYS_IN_ROW.daysInRow);
-  const daysInRow = await getUniversalEvents({
+  if(currentBetCat !== cfgRef.betCategory) {
+    return;
+  }
+
+  const totalBetsInCategory = await getUniversalEvents({
     userId,
-    'type': params.event,
-    createdAt: { '$gte': findXDaysDate }
-  }).catch((err)=> {
+    'type': "Notification/EVENT_BET_PLACED",
+    'data.event.category': cfgRef.betCategory
+  }, ['_id']).catch((err)=> {
     console.error(err);
   });
 
-  const groupByDateCounter = _.groupBy(daysInRow, x => {
-    return getDayOfYear(x.createdAt);
-  });
-
-  //Only once is allowed
-  if(isAlreadyExist.length === 0 && rewardTracker >= rewardTypes.ON_GAME_PLAYED_X_DAYS_IN_ROW.maxReward && groupByDateCounter.length === rewardTypes.ON_GAME_PLAYED_X_DAYS_IN_ROW.daysInRow) {
-    _.set(rewardRecord, 'payload.amountAwarded', rewardTypes.ON_GAME_PLAYED_X_DAYS_IN_ROW.games[gameName].singleActionReward);
-    _.set(rewardRecord, 'payload.days', rewardTypes.ON_GAME_PLAYED_X_DAYS_IN_ROW.daysInRow);
-
+  if(isAlreadyExist.length === 0 && totalBetsInCategory.length >= cfgRef.totalBets && rewardTracker < rewardTypes.ON_DAILY_LOGIN.maxReward) {
     await createReward(rewardRecord).catch((err)=> {
       console.error(err);
     });
 
     await updateUserTrackers(userId, {
-      $inc: { ['trackers.rewarded.' + rewardTypes.ON_GAME_PLAYED_X_DAYS_IN_ROW.type] : rewardTypes.ON_GAME_PLAYED_X_DAYS_IN_ROW.singleActionReward}
+      $inc: { ['trackers.rewarded.' + cfgRef.type] : cfgRef.singleActionReward}
     }).catch((err)=> {
       console.error(err);
     });
@@ -82,7 +74,7 @@ const handle = async (params) => {
       console.error(err);
     })
 
-    //save event and emit on default channel, just keep the default event structure, so we could save them easily, if we want
+    //save event and emit on default channel, just keep the default event structure, so we could save them easily
     const eventStructure = {
       event: notificationEvents.EVENT_USER_REWARDED,
       data: {
