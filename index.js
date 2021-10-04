@@ -1,5 +1,6 @@
 // Import and configure dotenv to enable use of environmental variable
 const dotenv = require('dotenv');
+const {initCrons} = require('./jobs/cron');
 
 dotenv.config();
 
@@ -49,6 +50,9 @@ async function main() {
 
   const { initTwitchSubscribeJob } = require('./jobs/twitch-subscribe-job');
   initTwitchSubscribeJob();
+
+  //init cron jobs
+  initCrons();
 
   // Import Socket.io service
   const websocketService = require('./services/websocket-service');

@@ -104,7 +104,12 @@ const getAllUserRewards = async (req, res) => {
   });
 };
 
+const getUsersLeaderboard = async ({event, data}) => {
+
+}
+
 module.exports = {
   getAllUserRewards,
-  checkDirectEvents
+  checkDirectEvents,
+  getUsersLeaderboard
 }

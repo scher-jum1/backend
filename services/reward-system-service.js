@@ -5,6 +5,9 @@ const axios = require('axios');
 const {publishEvent} = require('./notification-service');
 const {flatThis} = require('../controllers/reward-system/helpers')
 
+
+console.log("User", User);
+
 exports.createReward = async (data, options = {}) => {
   return Reward.create(data);
 };
@@ -36,4 +39,20 @@ exports.updateUserTrackers = async (userId, data) => {
     data,
     { new: true, lean: true }
   );
+};
+
+exports.getUsersLeaderboard = () => {
+
+  console.log("User", User);
+
+
+
+    // return new Promise(async (resolve, reject) => {
+    //   const users = await User.find({ username: { $exists: true } })
+    //     .sort({ amountWon: -1, username: 1 })
+    //     .select({ _id: 1, amountWon: 1 })
+    //     .exec();
+    //
+    //   resolve(users)
+    // })
 };
