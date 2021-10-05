@@ -33,6 +33,8 @@ module.exports = {
       const counter = ((await userApi.getUserEntriesAmount()) || 0) + 1;
       const passwordHash = await bcrypt.hash(password, 8);
 
+      const emailCode = generate(6);
+
       // create auth0 user
       const auth0User = auth0Service.createUser({
         email,
@@ -50,6 +52,7 @@ module.exports = {
       const createdUser = await userApi.createUser({
         _id: wFairUserId,
         email,
+        emailCode,
         username: username || `wallfair-${counter}`,
         password: passwordHash,
         preferences: {
@@ -57,6 +60,9 @@ module.exports = {
         },
         auth0Id: auth0User.user_id,
       });
+
+      //@todo temporary implemention, until we will find some better way on localhost
+      console.log("[CONFIRM EMAIL LINK]", `http://localhost:8000/api/user/confirm-email/?userId=${wFairUserId}&code=${emailCode}`)
 
       // TODO: When there's time, delete Auth0 user if WFAIR creation fails
 
