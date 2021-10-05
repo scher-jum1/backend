@@ -2,7 +2,7 @@ const {Reward, User, UniversalEvent} = require('@wallfair.io/wallfair-commons').
 const pick = require('lodash.pick');
 const bcrypt = require('bcrypt');
 const axios = require('axios');
-const {publishEvent} = require('./notification-service');
+const {publishEvent, publishOnDefaultChannel} = require('./notification-service');
 const {
   notificationEvents,
   DEFAULT_CHANNEL,
@@ -23,12 +23,18 @@ exports.createReward = async (data, options = {}) => {
     console.error(err);
   })
 
-  //publish to broadcast, this should be dedicated message just for user
-  publishToBroadcast({
-    event: eventStructure.type, data: {
+  //publish
+  publishOnDefaultChannel({
+    event: eventStructure.type,
+    data: {
+      to: "*",
       data
     }
   });
+
+  // emitToAllByUserId(eventStructure.userId, notificationEvents.EVENT_USER_REWARDED, {
+  //   type: notificationEvents.EVENT_USER_REWARDED
+  // });
 };
 
 exports.upsertReward = async (filter = {}, data, options = {}) => {

@@ -9,19 +9,17 @@ const { validationResult } = require('express-validator');
 const { User, Bet } = require('@wallfair.io/wallfair-commons').models;
 
 // Import Auth Service
-const { BetContract, Erc20 } = require('@wallfair.io/smart_contract_mock');
+const { BetContract } = require('@wallfair.io/smart_contract_mock');
 const eventService = require('../services/event-service');
 const userService = require('../services/user-service');
 const tradeService = require('../services/trade-service');
 const betService = require('../services/bet-service');
 
 const { ErrorHandler } = require('../util/error-handler');
-const { toPrettyBigDecimal, toCleanBigDecimal } = require('../util/number-helper');
+const { toScaledBigInt, fromScaledBigInt } = require('../util/number-helper');
 const { isAdmin } = require('../helper');
 const { calculateAllBetsStatus } = require('../services/event-service');
 const logger = require('../util/logger');
-
-const WFAIR = new Erc20('WFAIR');
 
 const listBets = async (req, res, next) => {
   try {
@@ -216,7 +214,7 @@ const pullOutBet = async (req, res, next) => {
 
     let requiredMinReturnAmount = 0n;
     if (minReturnAmount) {
-      requiredMinReturnAmount = BigInt(minReturnAmount);
+      requiredMinReturnAmount = toScaledBigInt(minReturnAmount);
     }
 
     const userId = req.user.id;
@@ -245,19 +243,19 @@ const pullOutBet = async (req, res, next) => {
           sellAmount = await betContract.getOutcomeToken(outcome).balanceOf(userId);
           console.debug(
             LOG_TAG,
-            `SELL ${userId} ${sellAmount} ${outcome} ${requiredMinReturnAmount * WFAIR.ONE}`
+            `SELL ${userId} ${sellAmount} ${outcome} ${requiredMinReturnAmount}`
           );
+
+          await tradeService.closeTrades(userId, bet, outcome, 'sold', session);
+          console.debug(LOG_TAG, 'Trades closed successfully');
 
           newBalances = await betContract.sellAmount(
             userId,
             sellAmount,
             outcome,
-            requiredMinReturnAmount * WFAIR.ONE
+            requiredMinReturnAmount
           );
           console.debug(LOG_TAG, 'Successfully sold Tokens');
-
-          await tradeService.closeTrades(userId, bet, outcome, 'sold', session);
-          console.debug(LOG_TAG, 'Trades closed successfully');
         })
         .catch((err) => console.error(err));
 
@@ -265,7 +263,7 @@ const pullOutBet = async (req, res, next) => {
         user,
         userId,
         bet,
-        toPrettyBigDecimal(newBalances?.earnedTokens),
+        fromScaledBigInt(newBalances?.earnedTokens),
         outcome,
         0n
       );
@@ -296,15 +294,13 @@ const calculateBuyOutcome = async (req, res, next) => {
     const bet = await Bet.findById(id);
     const betContract = new BetContract(id, bet.outcomes.length);
 
-    let buyAmount = parseFloat(amount).toFixed(4);
-    const bigAmount = toCleanBigDecimal(buyAmount);
-    buyAmount = BigInt(bigAmount.getValue());
+    let buyAmount = toScaledBigInt(amount);
 
     const result = [];
 
     for (const outcome of bet.outcomes) {
       const outcomeSellAmount = await betContract.calcBuy(buyAmount, outcome.index);
-      result.push({ index: outcome.index, outcome: toPrettyBigDecimal(outcomeSellAmount) });
+      result.push({ index: outcome.index, outcome: fromScaledBigInt(outcomeSellAmount) });
     }
 
     res.status(200).json(result);
@@ -327,16 +323,15 @@ const calculateSellOutcome = async (req, res, next) => {
   try {
     const bet = await Bet.findById(id);
     const betContract = new BetContract(id, bet.outcomes.length);
-    const sellAmount = parseFloat(amount).toFixed(4);
-    const bigAmount = toCleanBigDecimal(sellAmount);
+    const bigAmount = toScaledBigInt(amount);
     const result = [];
 
     for (const outcome of bet.outcomes) {
       const outcomeSellAmount = await betContract.calcSellFromAmount(
-        BigInt(bigAmount.getValue()),
+        bigAmount,
         outcome.index
       );
-      result.push({ index: outcome.index, outcome: toPrettyBigDecimal(outcomeSellAmount) });
+      result.push({ index: outcome.index, outcome: fromScaledBigInt(outcomeSellAmount) });
     }
 
     res.status(200).json(result);
@@ -387,13 +382,13 @@ const payoutBet = async (req, res, next) => {
 };
 
 const resolveBet = async (req, res, next) => {
+  if (!isAdmin(req)) {
+    return next(new ErrorHandler(403, 'Action not allowed.'));
+  }
+
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return next(new ErrorHandler(422, errors));
-  }
-
-  if (!isAdmin(req)) {
-    return next(new ErrorHandler(403, 'Action not allowed.'));
   }
 
   try {
@@ -412,6 +407,64 @@ const resolveBet = async (req, res, next) => {
     res.status(200).send();
   } catch (err) {
     return next(new ErrorHandler(422, err.message));
+  }
+};
+
+const cancelBet = async (req, res, next) => {
+  if (!isAdmin(req)) {
+    return next(new ErrorHandler(403, 'Action not allowed'));
+  }
+
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return next(new ErrorHandler(422, errors));
+  }
+
+  const { reasonOfCancellation } = req.body;
+  const { id } = req.params;
+
+  try {
+    const bet = await Bet.findById(id);
+    if (!bet) {
+      return next(new ErrorHandler(404, 'Bet does not exist'));
+    }
+
+    const cancelledBet = await betService.cancel(bet, reasonOfCancellation);
+
+    res.status(200).send(cancelledBet);
+  } catch (err) {
+    console.debug(err);
+    next(new ErrorHandler(422, err.message));
+  }
+
+};
+
+const deleteBet = async (req, res, next) => {
+  if (!isAdmin(req)) {
+    return next(new ErrorHandler(403, 'Action not allowed'));
+  }
+
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return next(new ErrorHandler(422, errors));
+  }
+
+  const { id } = req.params;
+  try {
+    const bet = await Bet.findById(id);
+    if (!bet) {
+      return next(new ErrorHandler(404, 'Bet does not exist.'));
+    }
+    if (!bet.canceled) {
+      return next(new ErrorHandler(422, 'Bet must be cancelled prior to deletion.'));
+    }
+
+    const deletedBet = await Bet.deleteOne(id);
+
+    res.status(200).send(deletedBet);
+  } catch (err) {
+    console.debug(err);
+    next(new ErrorHandler(422, err.message));
   }
 };
 
@@ -456,3 +509,5 @@ exports.payoutBet = payoutBet;
 exports.betHistory = betHistory;
 exports.getTrade = getTrade;
 exports.resolveBet = resolveBet;
+exports.cancelBet = cancelBet;
+exports.deleteBet = deleteBet;

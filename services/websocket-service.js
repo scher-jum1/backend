@@ -208,8 +208,8 @@ exports.emitBetResolveNotification = emitBetResolveNotification;
 
 const emitEventCancelNotification = (userId, eventId, eventName, cancellationDescription) => {
   console.log(userId, eventId, eventName, cancellationDescription);
-  // const message = `The event ${eventName} was cancelled due to ${cancellationDescription}.`;
-  // emitToAllByUserId(userId, 'notification', { type: notificationTypes.EVENT_CANCEL, eventId, message });
+  const message = `The event ${eventName} was cancelled due to ${cancellationDescription}.`;
+  emitToAllByUserId(userId, 'notification', { type: notificationTypes.EVENT_CANCEL, eventId, message });
 };
 exports.emitEventCancelNotification = emitEventCancelNotification;
 
@@ -225,3 +225,5 @@ const emitToAllByUserId = (userId, emitEventName, data) => {
     })
   );
 };
+
+exports.emitToAllByUserId = emitToAllByUserId;

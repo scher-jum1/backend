@@ -38,7 +38,7 @@ const listEvents = async (req, res, next) => {
 };
 
 const filterEvents = async (req, res) => {
-  const { category, sortby, searchQuery, type } = req.params;
+  const { category, sortby, searchQuery, type, upcoming, deactivated } = req.params;
   const count = +req.params.count;
   const page = +req.params.page;
 
@@ -48,6 +48,8 @@ const filterEvents = async (req, res) => {
     count,
     page,
     sortby,
+    upcoming === 'true',
+    deactivated === 'true',
     searchQuery,
     !req.isAdmin ? { bets: { $not: { $size: 0 } } } : null,
     type === "streamed" && req.isAdmin,
@@ -114,6 +116,10 @@ const createEvent = async (req, res, next) => {
       throw new Error('Non-streamed event must have a bet.');
     } else if (!isNonStreamedEvent && !streamUrl) {
       throw new Error('Streamed event must have a streamUrl.');
+    }
+
+    if (isNonStreamedEvent && (bet.outcomes.length < 2 || bet.outcomes.length > 4)) {
+      throw new Error('Bet must have between 2 and 4 outcomes.');
     }
 
     console.debug(LOG_TAG, 'Create a new Event', {

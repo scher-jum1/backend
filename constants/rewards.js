@@ -19,7 +19,7 @@ module.exports = {
       singleActionReward: 7500,
       maxReward: 7500,
       category: 'general',
-      influencers: ['publicperson1ref', 'publicperson1ref']
+      influencers: ['influencer1', 'influencer2']
     },
     'ON_SHARED_LINK_FIRST_VISIT': {
       type: 'ON_SHARED_LINK_FIRST_VISIT',
